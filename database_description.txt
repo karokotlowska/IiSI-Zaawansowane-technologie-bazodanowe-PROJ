@@ -1,0 +1,87 @@
+Table: rodzaj_operacji
+ - rodzaj_operacji: VARCHAR
+ - opis: VARCHAR
+
+Table: magazyn_operacje
+ - id_operacji: INTEGER
+ - id_produkt: INTEGER
+ - numer_kolejny_zamowienia: INTEGER
+ - data_operacji: DATE
+ - ilosc: INTEGER
+ - rodzaj_operacji: VARCHAR
+ - id_magazyn: INTEGER
+ - id_pracownik: INTEGER
+
+Table: magazyn_stan
+ - id_produkt: INTEGER
+ - id_magazyn: INTEGER
+ - ilosc: INTEGER
+
+Table: magazyn_lokalizacje
+ - id_magazyn: INTEGER
+ - nr_magazynu: INTEGER
+ - ulica: VARCHAR
+ - kod_pocztowy: VARCHAR(6)
+ - miasto: VARCHAR
+
+Table: produkt
+ - id_produkt: INTEGER
+ - opis: VARCHAR
+ - id_kategoria: INTEGER
+
+Table: kategoria
+ - id_kategoria: INTEGER
+ - nazwa: VARCHAR
+
+Table: pracownik
+ - id_pracownik: INTEGER
+ - imie: VARCHAR
+ - email: VARCHAR
+ - nazwisko: VARCHAR
+
+Table: zamowienie
+ - numer_kolejny_zamowienia: INTEGER
+ - id_zamowienia: VARCHAR
+ - id_magazyn: INTEGER
+ - data_stworzenia: VARCHAR
+ - status: VARCHAR
+ - id_pracownik: INTEGER
+ - kwota: NUMERIC(10, 2)
+ - waluta_zamowienia: VARCHAR
+ - id_firmy: VARCHAR
+
+Table: kontrahent
+ - id_firmy: VARCHAR
+ - nazwa: VARCHAR
+ - nip: VARCHAR
+ - numer_rachunku: VARCHAR
+
+Table: pracownik_stanowisko
+ - id_stanowisko: VARCHAR
+ - opis: VARCHAR
+
+Table: pracownik_role
+ - id_pracownik: INTEGER
+ - id_stanowisko: VARCHAR
+
+Table: weryfikacja
+ - id_pracownik: INTEGER
+ - login: VARCHAR
+ - haslo: VARCHAR
+
+Table: zamowienie_szczegoly
+ - numer_kolejny_zamowienia: INTEGER
+ - id_produkt: INTEGER
+ - ilosc: INTEGER
+ - waluta: VARCHAR(10)
+ - cena: NUMERIC(10, 2)
+
+Table: platnosc
+ - numer_kolejny_platnosci: INTEGER
+ - numer_kolejny_zamowienia: INTEGER
+ - status: VARCHAR
+ - sposob: VARCHAR
+ - data_zrealizowania: DATE
+ - kwota_platnosci: NUMERIC
+ - waluta_platnosci: VARCHAR
+

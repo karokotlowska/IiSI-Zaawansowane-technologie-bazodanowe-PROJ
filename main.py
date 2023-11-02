@@ -1,8 +1,16 @@
 import sqlalchemy
+from dotenv import load_dotenv
 from sqlalchemy import MetaData
 from sqlalchemy.engine import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from graphviz import Digraph
+import time
+import sys
+import threading
+
+from chatGPT import ChatGPT
+
+load_dotenv()
 
 # db_type = input("Enter the database type (e.g., postgresql, mysql): ")
 # db_host = input("Enter the database host: ")
@@ -23,7 +31,6 @@ for table_name in metadata.tables:
     print(f"Table: {table_name}")
     for column in table.columns:
         print(f"Column: {column.name}, Type: {column.type}")
-
 
 dot = Digraph(comment='Database Schema')
 dot.graph_attr['rankdir'] = 'LR'
@@ -58,6 +65,7 @@ def describe_table(table):
         description += "\n"
     return description
 
+
 text_description = ''
 for table_name in metadata.tables:
     table = metadata.tables[table_name]
@@ -65,3 +73,30 @@ for table_name in metadata.tables:
 
 with open('database_description.txt', 'w') as file:
     file.write(text_description)
+
+
+def loading_animation():
+    while not event.is_set():
+        sys.stdout.write('\r|')
+        time.sleep(0.1)
+        sys.stdout.write('\r/')
+        time.sleep(0.1)
+        sys.stdout.write('\r-')
+        time.sleep(0.1)
+        sys.stdout.write('\r\\')
+        time.sleep(0.1)
+
+event = threading.Event()
+
+question = "Wygeneruj opis dla tabeli o takiej strukturze. Opis powinien próbować odgadnąć semantyke oraz relacje pomiędzy tabelami"
+
+chatGPT = ChatGPT()
+loading_thread = threading.Thread(target=loading_animation)
+loading_thread.start()
+
+response = chatGPT.ask_gpt(f"{question}\n\n{text_description}")
+
+event.set()
+loading_thread.join()
+
+print(f"GPT Response: {response}")

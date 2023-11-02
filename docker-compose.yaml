@@ -1,0 +1,23 @@
+version: '3.9'
+
+services:
+  postgres:
+    container_name: isi_proj-postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres:
+networks:
+  postgres:
+    driver: bridge

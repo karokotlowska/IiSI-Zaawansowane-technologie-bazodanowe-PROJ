@@ -1,0 +1,40 @@
+[bookreader]
+*book_id
+*reader_id
+
+
+[book]
+*book_id
+book_title
++author_id
++category_id
+
+
+[author]
+*author_id
+author_name
+
+
+[category]
+*category_id
+category_name
+
+
+[reader]
+*reader_id
+reader_name
+
+
+[bookdetails]
+*book_id
+details_text
+
+
+
+
+# Relationships (Cardinality Syntax)
+reader *--1 bookreader
+book *--1 bookreader
+author 1--1 book
+category 1--1 book
+book *--1 bookdetails

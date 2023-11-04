@@ -55,25 +55,133 @@ for table_name in metadata.tables:
 
 dot.render('database_schema', format='png', view=True)
 
-
+#database description to send to chatbot 
 def describe_table(table):
     description = f"Table: {table.name}\n"
+    foreign_keys = set()
+
+    # Retrieve all foreign keys' columns across the tables
+    for t in metadata.tables.values():
+        for fk in t.foreign_key_constraints:
+            foreign_keys.update(fk.columns)
+
     for column in table.columns:
-        description += f" - {column.name}: {column.type}"
+        pk_marker = '*' if column.primary_key else ''
+        fk_marker = '+' if column in foreign_keys and not column.primary_key else ''
+        description += f" - {column.name}: {column.type} {pk_marker}{fk_marker}"
+
         if column.comment:
             description += f" ({column.comment})"
+
         description += "\n"
     return description
 
-
 text_description = ''
+comments = ''
+
 for table_name in metadata.tables:
     table = metadata.tables[table_name]
     text_description += describe_table(table) + "\n"
+    for column in table.columns:
+        if column.comment:
+            comments += f"Table: {table.name}, Column: {column.name}, Comment: {column.comment}\n"
 
 with open('database_description.txt', 'w') as file:
     file.write(text_description)
+    file.write("\n\nComments:\n")
+    file.write(comments)
 
+#KROKI------------------------------database_description_pattern.txt
+def describe_table(table):
+    description = f"[{table.name}]\n"
+    foreign_keys = set()
+
+    for t in metadata.tables.values():
+        for fk in t.foreign_key_constraints:
+            foreign_keys.update(fk.columns)
+
+    for column in table.columns:
+        pk_marker = '*' if column.primary_key else ''
+        fk_marker = '+' if column in foreign_keys and not column.primary_key else ''
+        description += f"{pk_marker}{fk_marker}{column.name}\n"
+
+    return description
+
+def has_duplicate_values(table_name, column_name):
+    with engine.connect() as connection:
+        query = f"SELECT {column_name}, COUNT(*) FROM {table_name} GROUP BY {column_name} HAVING COUNT(*) > 1"
+        result = connection.execute(query)
+        return result.first() is not None
+
+def has_intermediate_table(table_name):
+    table = metadata.tables[table_name]
+    foreign_key_count = 0
+
+    for constraint in table.constraints:
+        if isinstance(constraint, sqlalchemy.ForeignKeyConstraint):
+            referred_tables = [list(element.column.table.name for element in constraint.elements)]
+            foreign_key_count += len(referred_tables)
+
+    return foreign_key_count > 2
+
+def describe_relationships():
+    relationship_description = "\n\n# Relationships (Cardinality Syntax)"
+    encountered_relationships = set()
+
+    for table_name in metadata.tables:
+        table = metadata.tables[table_name]
+
+        symbol = ""
+        has_primary_key = any(column.primary_key for column in table.columns)
+        has_foreign_key = any(isinstance(constraint, sqlalchemy.ForeignKeyConstraint) for constraint in table.constraints)
+        has_unique_constraint = any(isinstance(constraint, sqlalchemy.UniqueConstraint) for constraint in table.constraints)
+
+        for column in table.columns:
+            if column.primary_key:
+                column_name = column.name
+                has_foreign_key = any(isinstance(constraint, sqlalchemy.ForeignKeyConstraint) for constraint in table.constraints)
+                has_duplicate_values1 = has_duplicate_values(table_name, column_name)
+
+                if column.primary_key and has_foreign_key and not has_duplicate_values1:
+                    symbol = "1--*"
+
+                if has_foreign_key and not has_duplicate_values1:
+                    symbol = "*--1"
+
+        if has_intermediate_table(table_name) and has_foreign_key:
+            symbol = "*--*"
+
+        if has_primary_key and has_foreign_key and has_unique_constraint:
+            symbol = "1--1"
+
+        for constraint in table.constraints:
+            if isinstance(constraint, sqlalchemy.ForeignKeyConstraint):
+                referred_table = list(constraint.elements)[0].column.table.name
+
+                combined_relationship = (table_name, symbol, referred_table)
+
+                if combined_relationship not in encountered_relationships and combined_relationship[::-1] not in encountered_relationships:
+                    encountered_relationships.add(combined_relationship)
+                    relationship_description += f"\n{referred_table} {symbol} {table_name}"
+
+    return relationship_description
+
+text_description = ''
+comments = ''
+relationship_description = describe_relationships()
+
+
+
+for table_name in metadata.tables:
+    table = metadata.tables[table_name]
+    text_description += describe_table(table) + "\n\n"
+    for column in table.columns:
+        if column.comment:
+            comments += f"Table: {table.name}, Column: {column.name}, Comment: {column.comment}\n"
+
+with open('database_description_pattern.txt', 'w') as file:
+    file.write(text_description)
+    file.write(relationship_description)
 
 def loading_animation():
     while not event.is_set():

@@ -24,7 +24,8 @@ class Database:
         comments = ''
 
         for table_name in self.tables:
-            table = self.tables[table_name]
+            table = self.metadata.tables[table_name]
+            print(table)
             text_description += self.describe_table(table) + "\n"
             for column in table.columns:
                 if column.comment:
@@ -77,7 +78,6 @@ class Database:
             pk_columns = inspector.get_pk_constraint(table_name)['constrained_columns']
  
             other_pk_columns = inspector.get_pk_constraint(other_table_name)['constrained_columns']
-            print(table_name, other_pk_columns)
             for pk_column in pk_columns:
                 if pk_column in other_pk_columns:
                     return True  
@@ -124,7 +124,6 @@ class Database:
         for constraint in all_primery_keys:
             referred_table = constraint.table.name
             symbol = "*--*"
-            print(table_name, constraint.table.name)
             if self.has_second_table_primary_key_of_first_table_primary_key(table_name, constraint.table.name) and referred_table!= table_name:
                 relationship_description += f"\n{referred_table} {symbol} {table_name}"
         return relationship_description

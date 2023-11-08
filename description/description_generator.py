@@ -27,7 +27,10 @@ class DescriptionGenerator:
             time.sleep(0.1)
 
     @classmethod
-    def runner(cls, db_details: str, lang: str):
+    def runner(cls, file_name: str, lang: str):
+        with open(file_name, 'r') as file:
+            db_details = file.read()
+
         event = threading.Event()
 
         loading_thread = threading.Thread(target=cls._loading_animation, args=(event,))

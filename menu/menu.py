@@ -27,5 +27,6 @@ class Menu:
         else:
             print("Invalid arguments: use --uri or --db, --user, --password, --host, --port")
             exit(1)
+        #db_url = f"postgresql://postgres:admin@localhost:5432/shopping_db"
 
         runnable(db_url, lang)

@@ -1,42 +1,86 @@
--- Create tables
-CREATE TABLE Author (
-    author_id SERIAL PRIMARY KEY,
-    author_name VARCHAR(100) NOT NULL,
-    UNIQUE(author_name)
+CREATE TABLE public.users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE Category (
-    category_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL,
-    UNIQUE(category_name)
+CREATE TABLE public.profiles (
+    profile_id SERIAL PRIMARY KEY,
+    user_id INT UNIQUE,
+    profile_info VARCHAR(255)
 );
 
-CREATE TABLE Book (
-    book_id SERIAL PRIMARY KEY,
-    book_title VARCHAR(100) NOT NULL,
-    author_id INT NOT NULL,
-    category_id INT NOT NULL,
-    FOREIGN KEY (author_id) REFERENCES Author(author_id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES Category(category_id) ON DELETE CASCADE,
-    UNIQUE(book_title, author_id) 
+ALTER TABLE public.profiles
+ADD CONSTRAINT fk_user_id
+FOREIGN KEY (user_id)
+REFERENCES public.users(user_id);
+
+CREATE TABLE public.departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE BookDetails (
-    book_id INT PRIMARY KEY,
-    details_text TEXT,
-    FOREIGN KEY (book_id) REFERENCES Book(book_id) ON DELETE CASCADE
+CREATE TABLE public.employees (
+    employee_id SERIAL PRIMARY KEY,
+    employee_name VARCHAR(50) NOT NULL,
+    department_id INT
 );
 
-CREATE TABLE Reader (
-    reader_id SERIAL PRIMARY KEY,
-    reader_name VARCHAR(100) NOT NULL,
-    UNIQUE(reader_name)
+ALTER TABLE public.employees
+ADD CONSTRAINT fk_department_id
+FOREIGN KEY (department_id)
+REFERENCES public.departments(department_id);
+
+CREATE TABLE public.employee_department (
+    employee_id INT REFERENCES employees(employee_id),
+    department_id INT REFERENCES departments(department_id),
+    PRIMARY KEY (employee_id, department_id)
 );
 
-CREATE TABLE BookReader (
-    book_id INT NOT NULL,
-    reader_id INT NOT NULL,
-    FOREIGN KEY (book_id) REFERENCES Book(book_id) ON DELETE CASCADE,
-    FOREIGN KEY (reader_id) REFERENCES Reader(reader_id) ON DELETE CASCADE,
-    PRIMARY KEY (book_id, reader_id)
+ALTER TABLE public.employee_department
+ADD CONSTRAINT fk_employee_id
+FOREIGN KEY (employee_id)
+REFERENCES public.employees(employee_id);
+
+ALTER TABLE public.employee_department
+ADD CONSTRAINT fk_department_id
+FOREIGN KEY (department_id)
+REFERENCES public.departments(department_id);
+
+
+
+```
+CREATE TABLE public.students (
+    student_id SERIAL PRIMARY KEY,
+    student_name VARCHAR(50) NOT NULL
 );
+
+CREATE TABLE public.courses (
+    course_id SERIAL PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE public.student_courses (
+    student_id INT REFERENCES public.students(student_id),
+    course_id INT REFERENCES public.courses(course_id),
+    PRIMARY KEY (student_id, course_id)
+);
+
+CREATE TABLE public.departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(50) NOT NULL
+);
+
+ALTER TABLE public.students
+ADD COLUMN department_id INT REFERENCES public.departments(department_id);
+
+CREATE TABLE public.teachers (
+    teacher_id SERIAL PRIMARY KEY,
+    teacher_name VARCHAR(50) NOT NULL
+);
+
+ALTER TABLE public.courses
+ADD COLUMN teacher_id INT REFERENCES public.teachers(teacher_id);
+
+ALTER TABLE public.students
+ADD COLUMN teacher_id INT REFERENCES public.teachers(teacher_id);
+```

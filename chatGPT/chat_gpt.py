@@ -1,11 +1,13 @@
 import openai
+from dotenv import load_dotenv
 
 from chatGPT import Prompt
 import os
 
+load_dotenv()
+
 
 class ChatGPT:
-
     COMPLETION = 'COMPLETION'
     CHAT = 'CHAT'
 
@@ -15,7 +17,6 @@ class ChatGPT:
     def ask_gpt(self, question: str):
         openai.api_key = self.key
         prompt = Prompt("gpt-3.5-turbo", 0.6, 2048, ChatGPT.CHAT, question)
-        print(prompt.prompt)
         return self._create_response(prompt)
 
     def _create_response(self, prompt: Prompt):

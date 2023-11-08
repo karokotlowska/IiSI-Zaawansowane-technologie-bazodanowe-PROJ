@@ -188,3 +188,28 @@ class Database:
             primary_key = [constraint for constraint in table.constraints if isinstance(constraint, PrimaryKeyConstraint)]
             all_primary_keys.extend(primary_key)
         return all_primary_keys
+
+
+'''
+dot = Digraph(comment='Database Schema')
+    dot.graph_attr['rankdir'] = 'LR'
+
+    for table_name in metadata.tables:
+        table = metadata.tables[table_name]
+        dot.node(table_name, label=table_name, shape='plaintext')
+
+    for table_name in metadata.tables:
+        table = metadata.tables[table_name]
+        for column in table.columns:
+            column_name_sanitized = str(column.name).replace(" ", "_")
+            label = f"{column.name} (PK)" if column.primary_key else column.name
+            dot.node(f'{table_name}_{column_name_sanitized}', label=label)
+            dot.edge(table_name, f'{table_name}_{column_name_sanitized}')
+
+    for table_name in metadata.tables:
+        table = metadata.tables[table_name]
+        for fk in table.foreign_key_constraints:
+            referred_table = list(fk.elements)[0].column.table.name
+            dot.edge(table_name, referred_table, label=f"FK: {', '.join(col.name for col in fk.columns)}")
+
+    dot.render('database_schema', format='png', view=True)'''

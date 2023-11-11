@@ -1,15 +1,23 @@
 from sqlalchemy import MetaData, PrimaryKeyConstraint, UniqueConstraint, ForeignKeyConstraint
-from sqlalchemy.engine import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.engine import create_engine, Engine
 from sqlalchemy import inspect
+from sqlalchemy.dialects.postgresql.base import PGInspector
+import logging
+
 
 class Database:
+    metadata: MetaData
+    inspector: PGInspector
+    engine: Engine
+    tables: list
+    view_names: list
+    db_url: str
+
     def __init__(self):
-        self.metadata = []
         self.tables = []
-        self.engine = ''
+        self.view_names = []
         self.db_url = ''
-    
+
     def connect(self, db_url):
         self.db_url = db_url
         engine = create_engine(self.db_url)
@@ -17,45 +25,96 @@ class Database:
         metadata = MetaData()
         metadata.reflect(bind=engine)
         self.metadata = metadata
+        self.inspector = inspect(engine)
         self.tables = metadata.tables
 
     def create_description_for_chat(self, file_name):
+        ''' DPERECATED '''
+
         text_description = ''
         comments = ''
 
+        views = self.describe_views()
         for table_name in self.tables:
+            print(self.inspector.get_check_constraints(table_name))
             table = self.metadata.tables[table_name]
             print(table)
-            text_description += self.describe_table(table) + "\n"
-            for column in table.columns:
-                if column.comment:
-                    comments += f"Table: {table.name}, Column: {column.name}, Comment: {column.comment}\n"
+            print(self.describe_table(table))
+            # for column in table.columns:
+            #     if column.comment:
+            #         comments += f"Table: {table.name}, Column: {column.name}, Comment: {column.comment}\n"
 
         with open(file_name, 'w') as file:
             file.write(text_description)
-            file.write("\n\nComments:\n")
-            file.write(comments)
+        #     file.write("\n\nComments:\n")
+        #     file.write(comments)
 
-    def describe_table(self, table):
-        description = f"Table: {table.name}\n"
-        foreign_keys = set()
+    def get_views(self) -> list:
+        views = []
+        view_names = self.inspector.get_view_names()
+        for view_name in view_names:
+            views.append({
+                "name": view_name,
+                "definition": self.inspector.get_view_definition(view_name),
+                "columns": self.inspector.get_columns(view_name)
+            })
+        return views
 
-        for t in self.tables.values():
-            for fk in t.foreign_key_constraints:
-                foreign_keys.update(fk.columns)
+    def get_tables(self) -> list:
+        tables = []
+        for table_name in self.tables:
+            table = self.metadata.tables[table_name]
+            tables.append(self.describe_table(table))
+        return tables
 
-        for column in table.columns:
-            pk_marker = '*' if column.primary_key else ''
-            fk_marker = '+' if column in foreign_keys and not column.primary_key else ''
-            description += f" - {column.name}: {column.type} {pk_marker}{fk_marker}"
+    def describe_table(self, table) -> dict:
+        logging.info(f"Fetching metadata for table: {table.name}")
 
-            if column.comment:
-                description += f" ({column.comment})"
+        foreign_keys = []
+        unique_constraints = []
+        primary_keys = []
+        indexes = []
 
-            description += "\n"
-        return description   
-    
-    # #KROKI
+        for c in table.constraints:
+            if isinstance(c, ForeignKeyConstraint):
+                foreign_keys = list(map(lambda col: col.name, c.columns))
+            elif isinstance(c, UniqueConstraint):
+                unique_constraints = list(map(lambda col: col.name, c.columns))
+            elif isinstance(c, PrimaryKeyConstraint):
+                primary_keys = list(map(lambda col: col.name, c.columns))
+
+        for index in table.indexes:
+            indexes.append({"name": index.name, "columns": list(map(lambda col: col.name, index.columns))})
+
+        columns = [{"name": column.name,
+                    "type": column.type,
+                    "primary_key": column.primary_key,
+                    "foreign_key": column in foreign_keys and not column.primary_key,
+                    "comment": column.comment,
+                    "default": column.default,
+                    "nullable": column.nullable,
+                    "unique": column.unique,
+                    "autoincrement": column.autoincrement,
+                    "identity": {
+                        "start": column.identity.start,
+                        "increment": column.identity.increment,
+                        "minvalue": column.identity.minvalue,
+                        "maxvalue": column.identity.maxvalue,
+                    } if column.identity is not None else None
+                    } for column in table.columns]
+
+        return {
+            "name": table.name,
+            "comment": table.comment,
+            "columns": columns,
+            "primary_keys": primary_keys,
+            "foreign_keys": foreign_keys,
+            "unique_constraints": unique_constraints,
+            "indexes": indexes
+        }
+
+        # #KROKI
+
     def describe_kroki_table(self, table):
         description = f"[{table.name}]\n"
         foreign_keys = set()
@@ -70,29 +129,27 @@ class Database:
             description += f"{pk_marker}{fk_marker}{column.name}\n"
 
         return description
-    
-        
+
     def has_second_table_primary_key_of_first_table_primary_key(self, table_name, other_table_name):
-        if(table_name != other_table_name):
+        if (table_name != other_table_name):
             inspector = inspect(self.engine)
             pk_columns = inspector.get_pk_constraint(table_name)['constrained_columns']
- 
+
             other_pk_columns = inspector.get_pk_constraint(other_table_name)['constrained_columns']
             for pk_column in pk_columns:
                 if pk_column in other_pk_columns:
-                    return True  
+                    return True
 
-        return False  
-    
+        return False
+
     def create_description_for_kroki(self, file_name):
         text_description = ''
         relationship_description = self.describe_relations_between_tables()
-    
-        
+
         for table_name in self.metadata.tables:
             table = self.metadata.tables[table_name]
             text_description += self.describe_kroki_table(table) + "\n\n"
-           
+
         with open(file_name, 'w') as file:
             file.write(text_description)
             file.write(relationship_description)
@@ -109,25 +166,29 @@ class Database:
             symbol = ""
 
             has_primary_key = any(column.primary_key for column in table.columns)
-            primary_keys = [constraint for constraint in table.constraints if isinstance(constraint, PrimaryKeyConstraint)]
-            unique_constraints = [constraint for constraint in table.constraints if isinstance(constraint, UniqueConstraint)]
+            primary_keys = [constraint for constraint in table.constraints if
+                            isinstance(constraint, PrimaryKeyConstraint)]
+            unique_constraints = [constraint for constraint in table.constraints if
+                                  isinstance(constraint, UniqueConstraint)]
 
             relationship_description += self.check_relation_many_to_many(table, table_name, all_primery_keys)
-            relationship_description += self.check_relation_one_to_one(table_name, primary_keys, all_foreign_keys, unique_constraints)
+            relationship_description += self.check_relation_one_to_one(table_name, primary_keys, all_foreign_keys,
+                                                                       unique_constraints)
             relationship_description += self.check_relation_one_to_many(table_name, primary_keys, all_foreign_keys)
 
         return relationship_description
-        
+
     def check_relation_many_to_many(self, table, table_name, all_primery_keys):
         symbol = ""
         relationship_description = ""
         for constraint in all_primery_keys:
             referred_table = constraint.table.name
             symbol = "*--*"
-            if self.has_second_table_primary_key_of_first_table_primary_key(table_name, constraint.table.name) and referred_table!= table_name:
+            if self.has_second_table_primary_key_of_first_table_primary_key(table_name,
+                                                                            constraint.table.name) and referred_table != table_name:
                 relationship_description += f"\n{referred_table} {symbol} {table_name}"
         return relationship_description
-    
+
     def check_relation_one_to_one(self, table_name, primary_keys, foreign_keys, unique_constraints):
         symbol = ""
         relationship_description = ""
@@ -138,36 +199,36 @@ class Database:
                     for unique in unique_constraints:
                         for uni in unique:
                             symbol = "1--1"
-                            if referred_table!= table_name and constraint.column.name == uni.name:    #różne nazwy tabel oraz nazwa FK jest równa Unique     
-                                    relationship_description += f"\n{referred_table} {symbol} {table_name}"
+                            if referred_table != table_name and constraint.column.name == uni.name:  # różne nazwy tabel oraz nazwa FK jest równa Unique
+                                relationship_description += f"\n{referred_table} {symbol} {table_name}"
         return relationship_description
 
     def check_relation_one_to_many(self, table_name, primary_keys, foreign_keys):
         symbol = ""
         relationship_description = ""
         for constraint in foreign_keys:
-            if(constraint.column.table.name != table_name):
+            if (constraint.column.table.name != table_name):
                 referred_table = constraint.column.table.name
                 for pk in primary_keys:
                     for columns in pk:
                         symbol = "*--1"
-                        if self.has_second_table_foreign_key_of_first_table_primary_key(columns.name, constraint.column.table.name) and referred_table!= table_name : #usunelam to sprawdzanie
+                        if self.has_second_table_foreign_key_of_first_table_primary_key(columns.name,
+                                                                                        constraint.column.table.name) and referred_table != table_name:  # usunelam to sprawdzanie
                             relationship_description += f"\n{referred_table} {symbol} {table_name}"
         return relationship_description
-    
+
     def has_second_table_foreign_key_of_first_table_primary_key(self, primary_key, second_table):
         inspector = inspect(self.engine)
         foreign_keys = inspector.get_foreign_keys(second_table)
         for foreign_key in foreign_keys:
             referred_columns = foreign_key['referred_columns']
             if primary_key in referred_columns:
-                return True  
+                return True
 
-        return False 
-    
+        return False
+
     def has_intermediate_table(self, table_name):
-        inspector = inspect(self.engine)
-        foreign_keys = inspector.get_foreign_keys(table_name)
+        foreign_keys = self.inspector.get_foreign_keys(table_name)
 
         referred_tables = set()
         for foreign_key in foreign_keys:
@@ -178,14 +239,15 @@ class Database:
     def get_all_foreign_keys(self):
         all_foreign_keys = []
         for table in self.metadata.tables.values():
-            foreign_keys =  table.foreign_keys
+            foreign_keys = table.foreign_keys
             all_foreign_keys.extend(foreign_keys)
         return all_foreign_keys
 
     def get_all_primary_keys(self):
         all_primary_keys = []
         for table in self.metadata.tables.values():
-            primary_key = [constraint for constraint in table.constraints if isinstance(constraint, PrimaryKeyConstraint)]
+            primary_key = [constraint for constraint in table.constraints if
+                           isinstance(constraint, PrimaryKeyConstraint)]
             all_primary_keys.extend(primary_key)
         return all_primary_keys
 

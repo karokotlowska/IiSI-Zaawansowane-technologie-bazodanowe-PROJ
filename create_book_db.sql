@@ -5,9 +5,15 @@ CREATE TABLE public.users (
 
 CREATE TABLE public.profiles (
     profile_id SERIAL PRIMARY KEY,
-    user_id INT UNIQUE,
+    user_id INT UNIQUE NOT NULL CHECK ( user_id > 0 ),
     profile_info VARCHAR(255)
 );
+
+COMMENT ON COLUMN public.profiles.user_id IS 'Foreign key to users table';
+COMMENT ON COLUMN public.profiles.profile_id IS 'Primary key of profiles table';
+COMMENT ON COLUMN public.profiles.profile_info IS 'Profile information of the user';
+COMMENT ON TABLE public.profiles IS 'Table containing user profiles';
+
 
 ALTER TABLE public.profiles
 ADD CONSTRAINT fk_user_id
@@ -84,3 +90,36 @@ ADD COLUMN teacher_id INT REFERENCES public.teachers(teacher_id);
 ALTER TABLE public.students
 ADD COLUMN teacher_id INT REFERENCES public.teachers(teacher_id);
 ```
+
+
+CREATE VIEW user_profiles_with_department AS
+SELECT p.profile_id, u.username, p.profile_info
+FROM public.profiles p
+         JOIN public.users u ON p.user_id = u.user_id;
+
+CREATE VIEW student_courses_view AS
+SELECT s.student_id, s.student_name, c.course_name
+FROM public.students s
+         JOIN public.student_courses sc ON s.student_id = sc.student_id
+         JOIN public.courses c ON sc.course_id = c.course_id;
+
+
+CREATE OR REPLACE FUNCTION get_employees_by_department(p_department_name VARCHAR)
+    RETURNS TABLE(employee_name VARCHAR, department_name VARCHAR)
+AS $$
+BEGIN
+    RETURN QUERY
+        SELECT e.employee_name, d.department_name
+        FROM public.employees e
+                 JOIN public.departments d ON e.department_id = d.department_id
+        WHERE d.department_name = p_department_name;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE INDEX idx_user_profile_info ON public.profiles(user_id, profile_info);
+CREATE INDEX idx_employee_department ON public.employee_department(employee_id, department_id);
+CREATE INDEX idx_student_courses ON public.student_courses(student_id, course_id);
+CREATE INDEX idx_student_department ON public.students(student_id, department_id);
+CREATE INDEX idx_user_id ON public.profiles(user_id);
+CREATE INDEX idx_profile_info ON public.profiles(profile_info);

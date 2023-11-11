@@ -19,7 +19,11 @@ class Query:
             else:
                 raise Exception("Invalid language")
 
-    PL = Question(
-        "Wygeneruj opis dla tabeli o takiej strukturze: %s Opis powinien próbować odgadnąć semantyke oraz relacje pomiędzy tabelami")
-    EN = Question(
+    TABLES_PL = Question(
+        "Wygeneruj opis dla tabel w relacyjnej bazie danych o takiej strukturze JSON: %s Opis powinien próbować odgadnąć semantyke oraz relacje pomiędzy tabelami. Opis tabeli powinien zawierać minimalnie 3 zdania, maksymalnie 5. Wyniki zwróć w formacie JSON w postaci: {\"table_name\": \"description\"}")
+    TABLES_EN = Question(
         "Generate a description for a table with such a structure: %s The description should try to guess the semantics and relationships between tables")
+
+    VIEWS_PL = Question(
+        "Wygeneruj opis dla widoków w relacyjnej bazie danych o takiej strukturze JSON: %s . Opis widoku powinien zawierać minimalnie 3 zdania, maksymalnie 5. Wyniki zwróć w formacie JSON w postaci: {\"view_name\": \"description\"}")
+    VIEWS_EN = Question("")

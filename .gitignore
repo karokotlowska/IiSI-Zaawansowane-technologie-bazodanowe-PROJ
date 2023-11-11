@@ -1,2 +1,9 @@
 .idea
 .env
+
+description_for_chat.txt
+description_for_kroki.txt
+diagram.svg
+diagram.png
+diagram_erd.jpg
+database_schema

@@ -34,7 +34,7 @@ class DescriptionGenerator:
             time.sleep(0.1)
 
     @classmethod
-    def runner(cls, tables: list, views: list, lang: Query.Lang) -> dict:
+    def runner(cls, tables: dict, views: list, lang: Query.Lang) -> dict:
 
         event = threading.Event()
         loading_thread = threading.Thread(target=cls._loading_animation, args=(event,))
@@ -42,10 +42,10 @@ class DescriptionGenerator:
 
         try:
             tables_response = cls._generate_tables_description(tables, lang)
-            views_response = cls._generate_views_description(views, lang)
+            # views_response = cls._generate_views_description(views, lang)
             event.set()
             loading_thread.join()
-            return {"tables": tables_response, "views": views_response}
+            return {"tables": tables_response}
         except Exception as e:
             event.set()
             loading_thread.join()

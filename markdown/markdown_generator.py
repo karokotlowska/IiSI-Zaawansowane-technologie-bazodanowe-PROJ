@@ -164,15 +164,13 @@ class MarkdownGenerator:
         markdown += cls._generate_table_indexes_description_content_content(table_metadata)
         markdown += cls._generate_table_checks_description_content_header(table_metadata)
         markdown += cls._generate_table_checks_description_content_content(table_metadata)
-        # markdown += cls._generate_table_unique_constraints_description_content_header()
-        # markdown += cls._generate_table_unique_constraints_description_content_content(table_metadata)
         return markdown
 
     @classmethod
     def _generate_table_description_content_content(cls, table_metadata: dict) -> str:
         markdown = ""
         for column_metadata in table_metadata['columns']:
-            markdown += cls._generate_column_description(column_metadata)
+            markdown += cls._generate_column_description(column_metadata, table_metadata['unique_constraints'])
         markdown += "\n"
         return markdown
 
@@ -184,9 +182,9 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_column_description(cls, column_metadata: dict) -> str:
+    def _generate_column_description(cls, column_metadata: dict, unique_constraints: list) -> str:
         markdown = ""
-        markdown += f"| {column_metadata['name']} | {column_metadata['type']} | {column_metadata['primary_key']} | {column_metadata['foreign_key']} | {column_metadata['unique']} | {not column_metadata['nullable']} |{column_metadata['default']} | {json.dumps(column_metadata['identity'])} | {column_metadata['autoincrement']} | {column_metadata['comment']}\n"
+        markdown += f"| {column_metadata['name']} | {column_metadata['type']} | {column_metadata['primary_key']} | {column_metadata['foreign_key']} | {column_metadata['unique']  or column_metadata['name'] in unique_constraints } | {not column_metadata['nullable']} |{column_metadata['default']} | {json.dumps(column_metadata['identity'])} | {column_metadata['autoincrement']} | {column_metadata['comment']}\n"
         return markdown
 
     @classmethod
@@ -229,26 +227,6 @@ class MarkdownGenerator:
     def _generate_check_description(cls, check_metadata: dict) -> str:
         markdown = ""
         markdown += f"| {check_metadata['name']} | {check_metadata['sqltext']} |\n"
-        return markdown
-
-    @classmethod
-    def _generate_table_unique_constraints_description_content_header(cls) -> str:
-        markdown = "| Unique constraint name | Columns |\n"
-        markdown += "| --- | --- |\n"
-        return markdown
-
-    @classmethod
-    def _generate_table_unique_constraints_description_content_content(cls, table_metadata: dict) -> str:
-        markdown = ""
-        for unique_constraint_metadata in table_metadata['unique_constraints']:
-            markdown += cls._generate_unique_constraint_description(unique_constraint_metadata)
-        return markdown
-
-    @classmethod
-    def _generate_unique_constraint_description(cls, unique_constraint_metadata: dict) -> str:
-        markdown = ""
-        print(unique_constraint_metadata)
-        markdown += f"| {unique_constraint_metadata['name']} | {', '.join(unique_constraint_metadata['columns'])} |\n"
         return markdown
 
     @classmethod

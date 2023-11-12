@@ -6,7 +6,9 @@ CREATE TABLE public.users (
 CREATE TABLE public.profiles (
     profile_id SERIAL PRIMARY KEY,
     user_id INT UNIQUE NOT NULL CHECK ( user_id > 0 ),
-    profile_info VARCHAR(255)
+    profile_info VARCHAR(255),
+    birth_date DATE CHECK (birth_date > '1900-01-01'),
+    joined_date DATE CHECK (joined_date > birth_date)
 );
 
 COMMENT ON COLUMN public.profiles.user_id IS 'Foreign key to users table';
@@ -90,6 +92,64 @@ ADD COLUMN teacher_id INT REFERENCES public.teachers(teacher_id);
 ALTER TABLE public.students
 ADD COLUMN teacher_id INT REFERENCES public.teachers(teacher_id);
 ```
+
+CREATE TABLE prices.prices_list (
+                             id serial PRIMARY KEY,
+                             product_id INT NOT NULL,
+                             price NUMERIC NOT NULL,
+                             discount NUMERIC NOT NULL,
+                             valid_from DATE NOT NULL,
+                             valid_to DATE NOT NULL
+);
+ALTER TABLE prices.prices_list
+    ADD CONSTRAINT price_discount_check
+        CHECK (
+                    price > 0
+                AND discount >= 0
+                AND price > discount
+            );
+ALTER TABLE prices.prices_list
+    ADD CONSTRAINT valid_range_check
+        CHECK (valid_to >= valid_from);
+
+CREATE OR REPLACE FUNCTION auto_generate_user_id()
+    RETURNS TRIGGER AS $$
+BEGIN
+    NEW.user_id := (SELECT MAX(user_id) FROM public.users) + 1;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_auto_generate_user_id
+    BEFORE INSERT ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION auto_generate_user_id();
+
+CREATE OR REPLACE FUNCTION check_price_validity()
+    RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.valid_from > NEW.valid_to THEN
+        RAISE EXCEPTION 'Invalid date range: valid_from must be less than or equal to valid_to';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_check_price_validity
+    BEFORE INSERT OR UPDATE ON prices.prices_list
+    FOR EACH ROW EXECUTE FUNCTION check_price_validity();
+
+
+CREATE OR REPLACE FUNCTION update_last_updated_column()
+    RETURNS TRIGGER AS $$
+BEGIN
+    NEW.last_updated := NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_last_updated
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION update_last_updated_column();
 
 
 CREATE VIEW user_profiles_with_department AS

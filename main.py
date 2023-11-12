@@ -1,6 +1,8 @@
+import json
+
 from dotenv import load_dotenv
 
-
+import pprint
 from Kroki.kroki import get_diagram_svg, convert_svg_to_png, save_svg_diagram
 from Database import Database
 from menu import Menu
@@ -11,10 +13,9 @@ import logging
 def run(db_url: str, lang: Query.Lang):
     db = Database()
     db.connect(db_url)
-    # db.create_description_for_chat('description_for_chat.txt')
-    tables = db.get_tables()
-    views = db.get_views()
-    db.create_description_for_kroki('description_for_kroki.txt')
+    # db.create_description_for_kroki('description_for_kroki.txt')
+    db_data = db.get_database_metadata()
+    pprint.pprint(db_data)
 
 
     svg_diagram = get_diagram_svg('description_for_kroki.txt', 'kroki.io')
@@ -22,8 +23,8 @@ def run(db_url: str, lang: Query.Lang):
     convert_svg_to_png('diagram.svg')
 
 
-    val = DescriptionGenerator.runner(tables, views, lang)
-    print(val)
+    # val = DescriptionGenerator.runner(tables, views, lang)
+    # print(val)
 
 
 if __name__ == '__main__':

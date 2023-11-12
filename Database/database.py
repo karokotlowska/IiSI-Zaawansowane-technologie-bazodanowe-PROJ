@@ -1,4 +1,4 @@
-from sqlalchemy import MetaData, PrimaryKeyConstraint, UniqueConstraint, ForeignKeyConstraint
+from sqlalchemy import MetaData, PrimaryKeyConstraint, UniqueConstraint, ForeignKeyConstraint, text
 from sqlalchemy.engine import create_engine, Engine
 from sqlalchemy import inspect
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -12,6 +12,8 @@ class Database:
     tables: list
     view_names: list
     db_url: str
+
+    SCHEMAS_TO_IGNORE = ['information_schema', 'pg_catalog', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog']
 
     def __init__(self):
         self.tables = []
@@ -28,30 +30,22 @@ class Database:
         self.inspector = inspect(engine)
         self.tables = metadata.tables
 
-    def create_description_for_chat(self, file_name):
-        ''' DPERECATED '''
+    def get_database_metadata(self) -> dict:
 
-        text_description = ''
-        comments = ''
+        schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]
+        db = {}
+        for schema in schemas:
+            self.metadata.reflect(bind=self.engine, schema=schema)
+            tables = self.get_tables(schema)
+            views = self.get_views(schema)
+            functions = self.get_functions(schema)
+            triggers = self.get_triggers(schema)
+            db[schema] = {"tables": tables, "views": views, "functions": functions, "triggers": triggers}
+        return db
 
-        views = self.describe_views()
-        for table_name in self.tables:
-            print(self.inspector.get_check_constraints(table_name))
-            table = self.metadata.tables[table_name]
-            print(table)
-            print(self.describe_table(table))
-            # for column in table.columns:
-            #     if column.comment:
-            #         comments += f"Table: {table.name}, Column: {column.name}, Comment: {column.comment}\n"
-
-        with open(file_name, 'w') as file:
-            file.write(text_description)
-        #     file.write("\n\nComments:\n")
-        #     file.write(comments)
-
-    def get_views(self) -> list:
+    def get_views(self, schema: str) -> list:
         views = []
-        view_names = self.inspector.get_view_names()
+        view_names = self.inspector.get_view_names(schema=schema)
         for view_name in view_names:
             views.append({
                 "name": view_name,
@@ -60,12 +54,40 @@ class Database:
             })
         return views
 
-    def get_tables(self) -> list:
+    def get_tables(self, schema: str) -> list:
         tables = []
-        for table_name in self.tables:
-            table = self.metadata.tables[table_name]
-            tables.append(self.describe_table(table))
+        table_names = self.inspector.get_table_names(schema=schema)
+        for table_name in table_names:
+            table = self.metadata.tables[schema + "." + table_name]
+            parsed_table = self.describe_table(table)
+            parsed_table["checks"] = self.inspector.get_check_constraints(table_name, schema=schema)
+            tables.append(parsed_table)
         return tables
+
+    def get_functions(self, schema: str) -> list:
+        with self.engine.connect() as connection:
+            result = connection.execute(text(
+                f"SELECT * FROM information_schema.routines WHERE routine_type='FUNCTION' AND specific_schema = '{schema}';"))
+            functions = result.fetchall()
+
+        return [{
+            "name": function['routine_name'],
+            "definition": function['routine_definition']
+        } for function in functions]
+
+    def get_triggers(self, schema: str) -> list:
+        with self.engine.connect() as connection:
+            result = connection.execute(text(
+                f"SELECT * FROM information_schema.triggers WHERE  trigger_schema = '{schema}';"))
+            triggers = result.fetchall()
+
+        return [{
+            "name": trigger['trigger_name'],
+            "event": trigger['event_manipulation'],
+            "table": trigger['event_object_table'],
+            "action": f"{trigger['action_timing']} {trigger['action_orientation']}",
+            "definition": trigger['action_statement']
+        } for trigger in triggers]
 
     def describe_table(self, table) -> dict:
         logging.info(f"Fetching metadata for table: {table.name}")
@@ -110,7 +132,8 @@ class Database:
             "primary_keys": primary_keys,
             "foreign_keys": foreign_keys,
             "unique_constraints": unique_constraints,
-            "indexes": indexes
+            "indexes": indexes,
+            "checks": []
         }
 
         # #KROKI

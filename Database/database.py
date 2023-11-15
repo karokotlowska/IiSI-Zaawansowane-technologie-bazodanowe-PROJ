@@ -196,10 +196,20 @@ class Database:
         relationship_description = "\n\n# Relationships"
         encountered_relationships = set()
 
+        # for table in self.get_tables_in_schema(schema):
+
+        #     constraints = self.inspector.get_foreign_keys(table.name, schema=schema)
+        #     print("\nForeign Keys:")
+        #     for constraint in constraints:
+        #         print(constraint)
+        #         print(f"Reffered table: {constraint['reffered_table']}, reffered_columns: {constraint['referred_columns']}, ")
+        #         #     f"Columns: {constraint['constrained_columns']}, "
+        #         #     f"Referred Table: {constraint['referred_table']}, "
+        #         #     f"Referred Columns: {constraint['referred_columns']}")
+
+
         all_foreign_keys = self.get_all_foreign_keys(schema=schema)
-        print(all_foreign_keys)
         all_primery_keys = self.get_all_primary_keys(schema=schema)
-        print(all_primery_keys)
         for table in self.get_tables_in_schema(schema):
             print(table.name)
             symbol = ""
@@ -209,8 +219,8 @@ class Database:
                             isinstance(constraint, PrimaryKeyConstraint)]
             unique_constraints = [constraint for constraint in table.constraints if
                                   isinstance(constraint, UniqueConstraint)]
-
-            relationship_description += self.check_relation_many_to_many(table, table.name, all_primery_keys, encountered_relationships, schema)
+            
+            # relationship_description += self.check_relation_one_to_manyPK(table, table.name, all_primery_keys, encountered_relationships, schema)
             relationship_description += self.check_relation_one_to_one(table.name, primary_keys, all_foreign_keys,
                                                                        unique_constraints, encountered_relationships)
             relationship_description += self.check_relation_one_to_many(table.name, primary_keys, all_foreign_keys, encountered_relationships, schema)
@@ -224,42 +234,53 @@ class Database:
             referred_table = constraint.table.name
             symbol = "*--*"
             combined_relationship = (referred_table, symbol, table_name)
-            print(combined_relationship)
             if self.has_second_table_primary_key_of_first_table_primary_key(table_name,
                                                                             constraint.table.name, schema) and referred_table != table_name and combined_relationship not in encountered_relationships and combined_relationship[::-1] not in encountered_relationships:
                 #relationship_description += f"\n{referred_table} {symbol} {table_name}"
                 encountered_relationships.add(combined_relationship)
+        return relationship_description
+    
+    def check_relation_one_to_manyPK(self, table, table_name, all_primery_keys, encountered_relationships, schema):
+        symbol = ""
+        relationship_description = ""
+        for constraint in all_primery_keys:
+            referred_table = constraint.table.name
+            symbol = "*--1"
+            combined_relationship = (referred_table, symbol, table_name)
+            print(combined_relationship)
+            if self.has_second_table_primary_key_of_first_table_primary_key(table_name,
+                                                                            constraint.table.name, schema) and referred_table != table_name and combined_relationship not in encountered_relationships and combined_relationship[::-1] not in encountered_relationships:
+                relationship_description += f"\n{referred_table} {symbol} {table_name}"
+                encountered_relationships.add(combined_relationship)
                 print(f"\n{referred_table} {symbol} {table_name}")
         return relationship_description
+
 
     def check_relation_one_to_one(self, table_name, primary_keys, foreign_keys, unique_constraints, encountered_relationships):
         symbol = ""
         relationship_description = ""
         for constraint in foreign_keys:
-            referred_table = constraint.column.table.name
+            referred_table = constraint['referred_table']
             for pk in primary_keys:
                 for columns in pk:
                     for unique in unique_constraints:
                         for uni in unique:
                             symbol = "1--1"
-                            if referred_table != table_name and constraint.column.name == uni.name:  # różne nazwy tabel oraz nazwa FK jest równa Unique
+                            if referred_table != table_name and constraint['referred_table'] == uni.name:  # różne nazwy tabel oraz nazwa FK jest równa Unique
                                 relationship_description += f"\n{referred_table} {symbol} {table_name}"
         return relationship_description
 
     def check_relation_one_to_many(self, table_name, primary_keys, foreign_keys, encountered_relationships, schema):
         symbol = ""
+        print("----")
         relationship_description = ""
         for constraint in foreign_keys:
-            if (constraint.column.table.name != table_name):
-                referred_table = constraint.column.table.name
-                for pk in primary_keys:
-                    for columns in pk:
+            if (constraint['referred_table'] == table_name):
+                        print(constraint['table_name'],  table_name)
                         symbol = "*--1"
-                        combined_relationship = (referred_table, symbol, table_name)
-                        if self.has_second_table_foreign_key_of_first_table_primary_key(columns.name,
-                                                                                        constraint.column.table.name, schema) and referred_table != table_name and combined_relationship not in encountered_relationships and combined_relationship[::-1] not in encountered_relationships:  # usunelam to sprawdzanie
-                            relationship_description += f"\n{referred_table} {symbol} {table_name}"
-                            print(relationship_description)
+                        combined_relationship = (constraint['table_name'], symbol, table_name)
+                        if combined_relationship not in encountered_relationships and combined_relationship[::-1] not in encountered_relationships:  # usunelam to sprawdzanie
+                            relationship_description += f"\n{constraint['table_name']} {symbol} {table_name}"
                             encountered_relationships.add(combined_relationship)
         return relationship_description
 
@@ -270,6 +291,12 @@ class Database:
             referred_columns = foreign_key['referred_columns']
             if primary_key in referred_columns:
                 return True
+            
+        # constraints_in_second_table = inspector.get_unique_constraints(second_table, schema=schema)
+        # print(constraints_in_second_table)
+        # for constraint in constraints_in_second_table:
+        #     if primary_key in constraint['column_names']:
+        #         return True
 
         return False
 
@@ -284,10 +311,11 @@ class Database:
 
     def get_all_foreign_keys(self, schema):
         all_foreign_keys = []
-        print(self.get_tables_in_schema(schema))
         for table in self.get_tables_in_schema(schema):
-            foreign_keys = table.foreign_keys
-            all_foreign_keys.extend(foreign_keys)
+            constraints = self.inspector.get_foreign_keys(table.name, schema=schema)
+            for constraint in constraints:
+                constraint['table_name'] = table.name
+                all_foreign_keys.append(constraint)
 
         return all_foreign_keys
 

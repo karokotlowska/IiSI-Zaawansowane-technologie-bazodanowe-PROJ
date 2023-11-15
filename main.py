@@ -16,12 +16,23 @@ def run(db_url: str, lang: Query.Lang):
     db = Database()
     db.connect(db_url)
     db.generate_data_for_kroki()
+
+    process_kroki_files()
     # db.create_description_for_kroki('description_for_kroki.txt')
     db_metadata = db.get_database_metadata()
     # pprint.pprint(db_metadata)
+    print(db_metadata.values())
 
-
-    process_kroki_files()
+    schemas_structure = {}
+    for schema_name, schema_data in db_metadata.items():
+        schema_structure = {
+            'tables': [table['name'] for table in schema_data.get('tables', [])],
+            'views': [view['name'] for view in schema_data.get('views', [])],
+            'functions': [func['name'] for func in schema_data.get('functions', [])],
+            'indexes': [],  # Include indexes if available
+            'triggers': [trigger['name'] for trigger in schema_data.get('triggers', [])]
+        }
+        schemas_structure[schema_name] = schema_structure
 
     pool = ThreadPool(processes=1)
 

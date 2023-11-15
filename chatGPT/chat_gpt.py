@@ -1,8 +1,13 @@
+import logging
+
 import openai
+from openai.error import  RateLimitError
 from dotenv import load_dotenv
 
 from chatGPT import Prompt
 import os
+import time
+
 
 load_dotenv()
 
@@ -14,10 +19,18 @@ class ChatGPT:
     def __init__(self):
         self.key = os.getenv("OPENAI_API_KEY")
 
-    def ask_gpt(self, question: str):
-        openai.api_key = self.key
-        prompt = Prompt("gpt-3.5-turbo", 0.6, 2048, ChatGPT.CHAT, question)
-        return self._create_response(prompt)
+    def ask_gpt(self, question: str, attempt: int = 0):
+        try:
+            openai.api_key = self.key
+            prompt = Prompt("gpt-3.5-turbo", 0.68, 2048, ChatGPT.CHAT, question)
+            return self._create_response(prompt)
+        except RateLimitError:
+            logging.warning(f"Rate limit exceeded, waiting 20 seconds for question {question} and trying again in 3 attempts left {3 - attempt}")
+            time.sleep(20)
+            if attempt > 3:
+                logging.error(f"Rate limit exceeded for question {question}, tried 3 times, giving up")
+                raise Exception("Rate limit exceeded")
+            return self.ask_gpt(question, attempt + 1)
 
     def _create_response(self, prompt: Prompt):
         if prompt.type == ChatGPT.COMPLETION:

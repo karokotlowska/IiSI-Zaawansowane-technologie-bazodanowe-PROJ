@@ -123,7 +123,7 @@ class Database:
                     "comment": column.comment,
                     "default": column.default,
                     "nullable": column.nullable,
-                    "unique": column.unique,
+                    "unique": column.unique or column in unique_constraints,
                     "autoincrement": column.autoincrement,
                     "identity": {
                         "start": column.identity.start,
@@ -139,7 +139,6 @@ class Database:
             "columns": columns,
             "primary_keys": primary_keys,
             "foreign_keys": foreign_keys,
-            "unique_constraints": unique_constraints,
             "indexes": indexes,
             "checks": []
         }

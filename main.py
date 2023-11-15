@@ -9,6 +9,7 @@ from markdown import MarkdownGenerator
 from menu import Menu
 from description import DescriptionGenerator, Query
 import logging
+from multiprocessing.pool import ThreadPool
 
 
 def run(db_url: str, lang: Query.Lang):
@@ -19,22 +20,27 @@ def run(db_url: str, lang: Query.Lang):
     db_metadata = db.get_database_metadata()
     # pprint.pprint(db_metadata)
 
+
     process_kroki_files()
 
+    pool = ThreadPool(processes=1)
 
+    async_db_description = pool.apply_async(DescriptionGenerator.generate_database_description,
+                                            (schemas_structure, lang))
 
-    # gpt_responses = {}
-    # for schema in db_metadata:
-    #     tables = db_metadata[schema]['tables']
-    #     views = db_metadata[schema]['views']
-    #     gpt_responses[schema] = DescriptionGenerator.runner(db_metadata[schema], views, lang)
+    gpt_responses = {}
+    for schema in db_metadata:
+        tables = db_metadata[schema]['tables']
+        views = db_metadata[schema]['views']
+        functions = db_metadata[schema]['functions']
+        gpt_responses[schema] = DescriptionGenerator.runner(tables, views, functions, lang)
 
-    # print(gpt_responses)
-    MarkdownGenerator.generate(db_metadata, {})
+    print(gpt_responses)
+    db_description = async_db_description.get()
+    MarkdownGenerator.generate(db_metadata, gpt_responses, db_description)
 
 
 if __name__ == '__main__':
-
     load_dotenv()
     logging.basicConfig()
     logging.root.setLevel(logging.NOTSET)

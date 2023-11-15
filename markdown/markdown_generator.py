@@ -4,14 +4,14 @@ import json
 class MarkdownGenerator:
 
     @classmethod
-    def generate(cls, db_metadata: dict, gpt_descriptions: dict):
-        markdown = cls._generate_markdown(db_metadata, gpt_descriptions)
+    def generate(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str):
+        markdown = cls._generate_markdown(db_metadata, gpt_descriptions, db_description)
         cls._save_markdown(markdown)
 
     @classmethod
-    def _generate_markdown(cls, db_metadata: dict, gpt_descriptions: dict) -> str:
+    def _generate_markdown(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str) -> str:
         markdown = ""
-        markdown += cls._generate_database_description(db_metadata)
+        markdown += cls._generate_database_description(db_metadata, db_description, gpt_descriptions)
         markdown += cls._generate_tables_description(db_metadata, gpt_descriptions)
         markdown += cls._generate_views_description(db_metadata, gpt_descriptions)
         markdown += cls._generate_functions_description(db_metadata, gpt_descriptions)
@@ -19,26 +19,27 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_database_description(cls, db_metadata: dict) -> str:
+    def _generate_database_description(cls, db_metadata: dict, db_description: str, gtp_descriptions: dict) -> str:
         markdown = "# Database description\n\n"
-        markdown += "Miejsce na opis od bota dla całej bazy danych\n\n"
-        markdown += cls._generate_database_description_content(db_metadata)
+        markdown += db_description + "\n\n"
+        markdown += cls._generate_database_description_content(db_metadata, gtp_descriptions)
         return markdown
 
     @classmethod
-    def _generate_database_description_content(cls, db_metadata: dict) -> str:
+    def _generate_database_description_content(cls, db_metadata: dict, gpt_descriptions) -> str:
         markdown = ""
         for schema in db_metadata:
-            markdown += cls._generate_schema_description(schema, db_metadata[schema])
+            schema_descriptions = gpt_descriptions[schema]
+            markdown += cls._generate_schema_description(schema, db_metadata[schema], schema_descriptions)
         return markdown
 
     @classmethod
-    def _generate_schema_description(cls, schema: str, schema_metadata: dict) -> str:
+    def _generate_schema_description(cls, schema: str, schema_metadata: dict, schema_descriptions: dict) -> str:
         markdown = ""
         markdown += cls._generate_schema_name(schema)
-        markdown += cls._generate_schema_tables(schema_metadata)
-        markdown += cls._generate_schema_views(schema_metadata)
-        markdown += cls._generate_schema_functions(schema_metadata)
+        markdown += cls._generate_schema_tables(schema_metadata, schema_descriptions['tables'])
+        markdown += cls._generate_schema_views(schema_metadata, schema_descriptions['views'])
+        markdown += cls._generate_schema_functions(schema_metadata, schema_descriptions['functions'])
         return markdown
 
     @classmethod
@@ -47,10 +48,10 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_schema_tables(cls, schema_metadata: dict) -> str:
+    def _generate_schema_tables(cls, schema_metadata: dict, table_descriptions: dict) -> str:
         markdown = ""
         markdown += cls._generate_schema_tables_header()
-        markdown += cls._generate_schema_tables_content(schema_metadata['tables'])
+        markdown += cls._generate_schema_tables_content(schema_metadata['tables'], table_descriptions)
         markdown += "\n"
         return markdown
 
@@ -61,23 +62,23 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_schema_tables_content(cls, tables_metadata: list) -> str:
+    def _generate_schema_tables_content(cls, tables_metadata: list, table_descriptions: dict) -> str:
         markdown = ""
         for table_metadata in tables_metadata:
-            markdown += cls._generate_table_description(table_metadata)
+            markdown += cls._generate_table_description(table_metadata, table_descriptions[table_metadata['name']])
         return markdown
 
     @classmethod
-    def _generate_table_description(cls, table_metadata: dict) -> str:
+    def _generate_table_description(cls, table_metadata: dict, table_description: str) -> str:
         markdown = ""
-        markdown += f"| {table_metadata['name']} | Miejsce na opis bota |\n"
+        markdown += f"| {table_metadata['name']} | {table_description} |\n"
         return markdown
 
     @classmethod
-    def _generate_schema_views(cls, schema_metadata: dict) -> str:
+    def _generate_schema_views(cls, schema_metadata: dict, views_descriptions: dict) -> str:
         markdown = ""
         markdown += cls._generate_schema_views_header()
-        markdown += cls._generate_schema_views_content(schema_metadata['views'])
+        markdown += cls._generate_schema_views_content(schema_metadata['views'], views_descriptions)
         markdown += "\n"
         return markdown
 
@@ -88,23 +89,23 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_schema_views_content(cls, views_metadata: list) -> str:
+    def _generate_schema_views_content(cls, views_metadata: list, views_descriptions: dict) -> str:
         markdown = ""
         for view_metadata in views_metadata:
-            markdown += cls._generate_view_description(view_metadata)
+            markdown += cls._generate_view_description(view_metadata, views_descriptions[view_metadata['name']])
         return markdown
 
     @classmethod
-    def _generate_view_description(cls, view_metadata: dict) -> str:
+    def _generate_view_description(cls, view_metadata: dict, view_description: str) -> str:
         markdown = ""
-        markdown += f"| {view_metadata['name']} | Miejsce na opis bota |\n"
+        markdown += f"| {view_metadata['name']} | {view_description} |\n"
         return markdown
 
     @classmethod
-    def _generate_schema_functions(cls, schema_metadata: dict) -> str:
+    def _generate_schema_functions(cls, schema_metadata: dict, functions_descriptions: dict) -> str:
         markdown = ""
         markdown += cls._generate_schema_functions_header()
-        markdown += cls._generate_schema_functions_content(schema_metadata['functions'])
+        markdown += cls._generate_schema_functions_content(schema_metadata['functions'], functions_descriptions)
         markdown += "\n"
         return markdown
 
@@ -115,16 +116,16 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_schema_functions_content(cls, functions_metadata: list) -> str:
+    def _generate_schema_functions_content(cls, functions_metadata: list, functions_descritpions: dict) -> str:
         markdown = ""
         for function_metadata in functions_metadata:
-            markdown += cls._generate_function_description(function_metadata)
+            markdown += cls._generate_function_description(function_metadata, functions_descritpions[function_metadata['name']])
         return markdown
 
     @classmethod
-    def _generate_function_description(cls, function_metadata: dict) -> str:
+    def _generate_function_description(cls, function_metadata: dict, function_description: str) -> str:
         markdown = ""
-        markdown += f"| {function_metadata['name']} | Miejsce na opis bota |\n"
+        markdown += f"| {function_metadata['name']} | {function_description}|\n"
         return markdown
 
     @classmethod
@@ -170,7 +171,7 @@ class MarkdownGenerator:
     def _generate_table_description_content_content(cls, table_metadata: dict) -> str:
         markdown = ""
         for column_metadata in table_metadata['columns']:
-            markdown += cls._generate_column_description(column_metadata, table_metadata['unique_constraints'])
+            markdown += cls._generate_column_description(column_metadata)
         markdown += "\n"
         return markdown
 
@@ -182,9 +183,9 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_column_description(cls, column_metadata: dict, unique_constraints: list) -> str:
+    def _generate_column_description(cls, column_metadata: dict) -> str:
         markdown = ""
-        markdown += f"| {column_metadata['name']} | {column_metadata['type']} | {column_metadata['primary_key']} | {column_metadata['foreign_key']} | {column_metadata['unique']  or column_metadata['name'] in unique_constraints } | {not column_metadata['nullable']} |{column_metadata['default']} | {json.dumps(column_metadata['identity'])} | {column_metadata['autoincrement']} | {column_metadata['comment']}\n"
+        markdown += f"| {column_metadata['name']} | {column_metadata['type']} | {column_metadata['primary_key']} | {column_metadata['foreign_key']} | {column_metadata['unique']} | {not column_metadata['nullable']} |{column_metadata['default']} | {json.dumps(column_metadata['identity'])} | {column_metadata['autoincrement']} | {column_metadata['comment']} |\n"
         return markdown
 
     @classmethod

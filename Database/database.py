@@ -3,7 +3,9 @@ from sqlalchemy.engine import create_engine, Engine
 from sqlalchemy import inspect, Table
 from sqlalchemy.dialects.postgresql.base import PGInspector
 import logging
+from graphviz import Digraph
 
+import matplotlib.pyplot as plt
 
 class Database:
     metadata: MetaData
@@ -88,7 +90,80 @@ class Database:
             "action": f"{trigger['action_timing']} {trigger['action_orientation']}",
             "definition": trigger['action_statement']
         } for trigger in triggers]
+    
+    def visualize(self):
+        schemas = self.inspector.get_schema_names()
+        for schema in schemas:
+            dot = Digraph(comment=f"Schema: {schema}", format='png')
 
+            tables = self.inspector.get_table_names(schema=schema)
+
+            for table in tables:
+                dot.node(table, shape='box', style='filled', fillcolor='lightyellow')
+
+                primary_keys = self.inspector.get_pk_constraint(table, schema=schema)['constrained_columns']
+                for pk_column in primary_keys:
+                    dot.node(f"{table}_{pk_column}", label=f"PK: {pk_column}", shape='ellipse', style='filled', fillcolor='lightblue')
+                    dot.edge(f"{table}_{pk_column}", table, style='dashed', color='blue')
+
+                foreign_keys = self.inspector.get_foreign_keys(table, schema=schema)
+                for foreign_key in foreign_keys:
+                    ref_table = foreign_key['referred_table']
+                    ref_column = foreign_key['referred_columns'][0]
+                    dot.edge(table, ref_table, label=f"FK: {table}.{foreign_key['constrained_columns'][0]} -> {ref_table}.{ref_column}", color='green', dir='none')
+
+            output_file = f"{schema}_graph"
+            dot.render(output_file, format='png', cleanup=True)
+
+    def generate_data_for_digraph(self):
+        schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]
+        for schema in schemas:
+            tables = self.inspector.get_table_names(schema=schema)
+
+            num_columns = [len(self.inspector.get_columns(table, schema=schema)) for table in tables]
+
+            # Cast the number of columns to integers
+            num_columns = list(map(int, num_columns))
+
+            plt.figure(figsize=(10, 6))
+            plt.bar(range(len(tables)), num_columns)
+            plt.title(f"Schema: {schema}")
+            plt.xlabel("Table")
+            plt.ylabel("Number of Columns")
+            plt.xticks(range(len(tables)), tables, rotation='horizontal')
+
+            # Set y-axis ticks to integers only
+            plt.yticks(range(min(num_columns), max(num_columns) + 1))
+
+            plt.savefig(f"{schema}_plot.png")
+        # schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]
+
+        # for i, schema in enumerate(schemas, start=1):
+        #     file_name = f'description_for_digraph{i}.png'
+        #     self.render_digraph(schema, file_name)
+
+
+    def render_digraph(self, schema, file_name):
+        dot = Digraph(comment=f'Database Schema - {schema}', format='png')
+        dot.graph_attr['rankdir'] = 'LR'
+
+        metadata = MetaData(bind=self.engine, schema=schema)
+        metadata.reflect()
+
+        for table_name in metadata.tables:
+            table = metadata.tables[table_name]
+            dot.node(f'{schema}_{table_name}', label=table_name, color='lightblue', style='filled', shape='box', fontname='Arial')
+
+            for column in table.columns:
+                column_name_sanitized = str(column.name).replace(" ", "_")
+                label = f"{column.name} (PK)" if column.primary_key else column.name
+                dot.node(f'{schema}_{table_name}_{column_name_sanitized}', label=label, fontname='Arial')
+
+            for fk in table.foreign_keys:
+                referred_table = fk.column.table.name
+                dot.edge(f'{schema}_{table_name}', f'{schema}_{referred_table}', label=f"FK: {', '.join(col.name for col in fk.constraint.columns)}", fontname='Arial', color='blue')
+
+        dot.render(file_name, view=True)
 
     def generate_data_for_kroki(self):
         schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]

@@ -16,12 +16,15 @@ def run(db_url: str, lang: Query.Lang):
     db = Database()
     db.connect(db_url)
     db.generate_data_for_kroki()
+    db.generate_data_for_digraph()
+
+    db.visualize()
 
     process_kroki_files()
     # db.create_description_for_kroki('description_for_kroki.txt')
     db_metadata = db.get_database_metadata()
     # pprint.pprint(db_metadata)
-    print(db_metadata.values())
+    # print(db_metadata.values())
 
     schemas_structure = {}
     for schema_name, schema_data in db_metadata.items():

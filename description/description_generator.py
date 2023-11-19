@@ -2,14 +2,17 @@ import json
 import sys
 import time
 import threading
+from typing import List
 
 from chatGPT import ChatGPT
+from .error import Error
 from .questions import Query
 import logging
 
 
 class DescriptionGenerator:
     gptClient: ChatGPT = ChatGPT()
+    errors: List[Error] = []
 
     tablesQueryVersions = {
         Query.Lang.PL: Query.TABLES_PL,
@@ -68,6 +71,10 @@ class DescriptionGenerator:
             views_thread.join()
             functions_thread.join()
 
+            if len(cls.errors) > 0:
+                logging.error(f"Aborting system...Error while generating description {cls.errors}")
+                raise Exception("Error while generating description")
+
             # event.set()
             # loading_thread.join()
             return {"tables": cls.tables_response, "views": cls.views_response, "functions": cls.functions_response}
@@ -85,14 +92,19 @@ class DescriptionGenerator:
             return
 
         query = cls.viewsQueryVersions[lang].builder(str(views))
-        logging.info(f"Starting generating views description with GPT query: {query}")
+        logging.info(
+            f"Thread: [{threading.current_thread().name}] Starting generating views description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)
-        logging.info(f"Finished generating views description. Successfully got response: {response}")
+        logging.info(
+            f"Thread: [{threading.current_thread().name}] Finished generating views description. Successfully got "
+            f"response: {response}")
         try:
             cls.views_response = json.loads(response)
         except Exception as e:
-            logging.error(f"GPT response for view description returned in invalid format {e}")
-            raise Exception("Invalid GPT response")
+            logging.error(f"Thread: [{threading.current_thread().name}] Error occurred while generating views "
+                          f"description {e}")
+            cls.errors.append(Error(str(e), "generate_views_description", threading.current_thread().name))
+            raise Exception(e)
 
     @classmethod
     def _generate_tables_description(cls, tables: list, lang: Query.Lang) -> dict:
@@ -102,16 +114,20 @@ class DescriptionGenerator:
             cls.tables_response = {}
 
         query = cls.tablesQueryVersions[lang].builder(str(tables))
-        logging.info(f"Starting generating tables description with GPT query: {query}")
+        logging.info(
+            f"Thread: [{threading.current_thread().name}] Starting generating tables description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)
-        logging.info(f"Finished generating tables description. Successfully got response: {response}")
+        logging.info(
+            f"Thread: [{threading.current_thread().name}] Finished generating tables description. Successfully got "
+            f"response: {response}")
 
         try:
             cls.tables_response = json.loads(response)
         except Exception as e:
-            logging.error(f"GPT response for tables description returned in invalid format {e}")
-            raise Exception("Invalid GPT response")
-
+            logging.error(f"Thread: [{threading.current_thread().name}] Error occurred while generating tables "
+                          f"description {e}")
+            cls.errors.append(Error(str(e), "generate_tables_description", threading.current_thread().name))
+            raise Exception(e)
 
     @classmethod
     def _generate_functions_description(cls, functions: list, lang: Query.Lang) -> dict:
@@ -122,30 +138,37 @@ class DescriptionGenerator:
             return
 
         query = cls.functionsQueryVersions[lang].builder(str(functions))
-        logging.info(f"Starting generating functions description with GPT query: {query}")
+        logging.info(
+            f"Thread: [{threading.current_thread().name}] Starting generating functions description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)
-        logging.info(f"Finished generating functions description. Successfully got response: {response}")
+        logging.info(
+            f"Thread: [{threading.current_thread().name}] Finished generating functions description. Successfully got "
+            f"response: {response}")
 
         try:
             cls.functions_response = json.loads(response)
         except Exception as e:
-            logging.error(f"GPT response for functions description returned in invalid format {e}")
-            raise Exception("Invalid GPT response")
-
+            logging.error(f"Thread: [{threading.current_thread().name}] Error occurred while generating functions "
+                          f"description {e}")
+            cls.errors.append(Error(str(e), "generate_functions_description", threading.current_thread().name))
+            raise Exception(e)
 
     @classmethod
     def generate_database_description(cls, db: dict, lang: Query.Lang) -> str:
         # TODO use json.dumps instead of str
         query = cls.databaseQueryVersions[lang].builder(str(db))
-        logging.info(f"Starting generating database description with GPT query: {query}")
+        logging.info(
+            f"Thread: [{threading.current_thread().name}] Starting generating database description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)
         dict_response = json.loads(response)
-        logging.info(f"Finished generating database description. Successfully got response: {response}")
+        logging.info(f"Thread: [{threading.current_thread().name}] Finished generating database description. "
+                     f"Successfully got response: {response}")
         if 'database' not in dict_response:
-            logging.error(f"GPT response for database description returned in invalid format {dict_response}")
+            logging.error(
+                f"Thread: [{threading.current_thread().name}] GPT response for database description returned in "
+                f"invalid format {dict_response}")
             raise Exception("Invalid GPT response")
         return dict_response['database']
-
 
     @classmethod
     def _save_to_file(cls, content: str):

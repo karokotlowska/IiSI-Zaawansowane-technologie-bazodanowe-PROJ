@@ -15,6 +15,7 @@ openai = "^0.28.1"
 setuptools = "^68.2.2"
 python-dotenv = "^1.0.0"
 cairosvg = "^2.7.1"
+matplotlib = "^3.8.2"
 
 
 

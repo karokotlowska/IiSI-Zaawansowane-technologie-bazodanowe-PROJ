@@ -4,33 +4,41 @@ import json
 class MarkdownGenerator:
 
     @classmethod
-    def generate(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str):
-        markdown = cls._generate_markdown(db_metadata, gpt_descriptions, db_description)
+    def generate(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str, diagrams: dict):
+        markdown = cls._generate_markdown(db_metadata, gpt_descriptions, db_description, diagrams)
         cls._save_markdown(markdown)
 
     @classmethod
-    def _generate_markdown(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str) -> str:
+    def _generate_markdown(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str, diagrams: dict) -> str:
         markdown = ""
-        markdown += cls._generate_database_description(db_metadata, db_description, gpt_descriptions)
+        markdown += cls._generate_database_description(db_metadata, db_description, gpt_descriptions, diagrams)
         markdown += cls._generate_tables_description(db_metadata, gpt_descriptions)
         markdown += cls._generate_views_description(db_metadata, gpt_descriptions)
         markdown += cls._generate_functions_description(db_metadata, gpt_descriptions)
         markdown += cls._generate_triggers_description(db_metadata, gpt_descriptions)
         return markdown
-
+    
     @classmethod
-    def _generate_database_description(cls, db_metadata: dict, db_description: str, gtp_descriptions: dict) -> str:
-        markdown = "# Database description\n\n"
-        markdown += db_description + "\n\n"
-        markdown += cls._generate_database_description_content(db_metadata, gtp_descriptions)
+    def _insert_svg_files(cls, diagram: str) -> str:
+        markdown = ""
+        svg_tag = f'<img src="{diagram}" alt="Kroki diagram">\n\n'
+        markdown += svg_tag
         return markdown
 
     @classmethod
-    def _generate_database_description_content(cls, db_metadata: dict, gpt_descriptions) -> str:
+    def _generate_database_description(cls, db_metadata: dict, db_description: str, gtp_descriptions: dict, diagrams: dict) -> str:
+        markdown = "# Database description\n\n"
+        markdown += db_description + "\n\n"
+        markdown += cls._generate_database_description_content(db_metadata, gtp_descriptions, diagrams)
+        return markdown
+    
+    @classmethod
+    def _generate_database_description_content(cls, db_metadata: dict, gpt_descriptions, diagrams: dict) -> str:
         markdown = ""
         for schema in db_metadata:
             schema_descriptions = gpt_descriptions[schema]
             markdown += cls._generate_schema_description(schema, db_metadata[schema], schema_descriptions)
+            markdown += cls._insert_svg_files(diagrams[schema])
         return markdown
 
     @classmethod

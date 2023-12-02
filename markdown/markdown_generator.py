@@ -17,7 +17,7 @@ class MarkdownGenerator:
         markdown += cls._generate_functions_description(db_metadata, gpt_descriptions)
         markdown += cls._generate_triggers_description(db_metadata, gpt_descriptions)
         return markdown
-    
+
     @classmethod
     def _insert_svg_files(cls, diagram: str) -> str:
         markdown = ""
@@ -26,12 +26,13 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_database_description(cls, db_metadata: dict, db_description: str, gtp_descriptions: dict, diagrams: dict) -> str:
+    def _generate_database_description(cls, db_metadata: dict, db_description: str, gtp_descriptions: dict,
+                                       diagrams: dict) -> str:
         markdown = "# Database description\n\n"
         markdown += db_description + "\n\n"
         markdown += cls._generate_database_description_content(db_metadata, gtp_descriptions, diagrams)
         return markdown
-    
+
     @classmethod
     def _generate_database_description_content(cls, db_metadata: dict, gpt_descriptions, diagrams: dict) -> str:
         markdown = ""
@@ -127,7 +128,8 @@ class MarkdownGenerator:
     def _generate_schema_functions_content(cls, functions_metadata: list, functions_descritpions: dict) -> str:
         markdown = ""
         for function_metadata in functions_metadata:
-            markdown += cls._generate_function_description(function_metadata, functions_descritpions[function_metadata['name']])
+            markdown += cls._generate_function_description(function_metadata,
+                                                           functions_descritpions[function_metadata['name']])
         return markdown
 
     @classmethod
@@ -194,7 +196,7 @@ class MarkdownGenerator:
     def _generate_column_description(cls, column_metadata: dict) -> str:
         markdown = ""
         markdown += f"| {column_metadata['name']} | {column_metadata['type']} | {column_metadata['primary_key']} | {column_metadata['foreign_key']} | {column_metadata['unique']} | {not column_metadata['nullable']} |{column_metadata['default']} | {json.dumps(column_metadata['identity'])} | {column_metadata['autoincrement']} | {column_metadata['comment']} |\n"
-        return markdown
+        return markdown.replace("True", "&check;").replace("False", "&cross;")
 
     @classmethod
     def _generate_table_indexes_description_content_header(cls) -> str:

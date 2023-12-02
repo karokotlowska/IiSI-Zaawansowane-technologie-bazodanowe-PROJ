@@ -49,10 +49,12 @@ def run(db_url: str, lang: Query.Lang):
         tables = db_metadata[schema]['tables']
         views = db_metadata[schema]['views']
         functions = db_metadata[schema]['functions']
-        # gpt_responses[schema] = DescriptionGenerator.runner(tables, views, functions, lang)
+        gpt_responses[schema] = DescriptionGenerator.runner(tables, views, functions, lang)
         diagrams[schema] = f"description_for_kroki{counter}_diagram.svg"
         counter += 1
     print(gpt_responses)
+    db_description = async_db_description.get()
+    MarkdownGenerator.generate(db_metadata, gpt_responses, db_description, diagrams)
 
 
 if __name__ == '__main__':

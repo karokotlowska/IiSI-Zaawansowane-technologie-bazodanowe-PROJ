@@ -14,26 +14,6 @@ class DescriptionGenerator:
     gptClient: ChatGPT = ChatGPT()
     errors: List[Error] = []
 
-    tablesQueryVersions = {
-        Query.Lang.PL: Query.TABLES_PL,
-        Query.Lang.EN: Query.TABLES_EN
-    }
-
-    viewsQueryVersions = {
-        Query.Lang.PL: Query.VIEWS_PL,
-        Query.Lang.EN: Query.VIEWS_EN
-    }
-
-    databaseQueryVersions = {
-        Query.Lang.PL: Query.DATABASE_PL,
-        Query.Lang.EN: Query.DATABASE_PL
-    }
-
-    functionsQueryVersions = {
-        Query.Lang.PL: Query.FUNCTIONS_PL,
-        Query.Lang.EN: Query.FUNCTIONS_PL
-    }
-
     tables_response = {}
     views_response = {}
     functions_response = {}
@@ -91,7 +71,7 @@ class DescriptionGenerator:
             cls.views_response = {}
             return
 
-        query = cls.viewsQueryVersions[lang].builder(str(views))
+        query = Query.VIEWS_EN.builder(str(views), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating views description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)
@@ -113,7 +93,7 @@ class DescriptionGenerator:
         if len(tables) == 0:
             cls.tables_response = {}
 
-        query = cls.tablesQueryVersions[lang].builder(str(tables))
+        query = Query.TABLES_EN.builder(str(tables), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating tables description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)
@@ -137,7 +117,7 @@ class DescriptionGenerator:
             cls.functions_response = {}
             return
 
-        query = cls.functionsQueryVersions[lang].builder(str(functions))
+        query = Query.FUNCTIONS_EN.builder(str(functions), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating functions description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)
@@ -156,7 +136,7 @@ class DescriptionGenerator:
     @classmethod
     def generate_database_description(cls, db: dict, lang: Query.Lang) -> str:
         # TODO use json.dumps instead of str
-        query = cls.databaseQueryVersions[lang].builder(str(db))
+        query = Query.DATABASE_EN.builder(str(db), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating database description with GPT query: {query}")
         response = cls.gptClient.ask_gpt(query)

@@ -35,7 +35,7 @@ class Query:
                 raise Exception("Invalid language")
 
     DATABASE_EN = Question(
-        "Generate a description for the database with the given structure in JSON format name_schema => content: %s Please make the description contain min 400 words. Please return description under the 'database' key in  JSON format: { \"database\": \"description\"}. Descriptions should be in %s language. Use the \\n character instead of new lines.")
+        "Generate a description for the database with the given structure in JSON format name_schema => content: %s Please make the description contain min 400 words. Please return description under the 'database' key in  JSON format: { \"database\": \"description\"}. Descriptions should be in %s language. If you want to use new line character please use \\n instead of new line.")
 
     TABLES_EN = Question(
         "Generate a description for tables in the relational database with this JSON structure: %s. The description should attempt to guess the semantics and relationships between the tables. The table description should contain a minimum of 3 sentences, a maximum of 5. Return the results in JSON format: { \"table_name_1\": \"description\", \"table_name_2\": \"description\"} and return nothing else. Descriptions should be in %s language. Use the \\n character instead of new lines.")

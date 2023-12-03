@@ -180,7 +180,7 @@ class MarkdownGenerator:
     @classmethod
     def _generate_table_description_content_content(cls, table_metadata: dict) -> str:
         markdown = ""
-        for column_metadata in table_metadata['columns']:
+        for column_metadata in table_metadata['columns_details']:
             markdown += cls._generate_column_description(column_metadata)
         markdown += "\n"
         return markdown

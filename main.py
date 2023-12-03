@@ -1,3 +1,4 @@
+import copy
 import json
 
 from dotenv import load_dotenv
@@ -46,10 +47,19 @@ def run(db_url: str, lang: Query.Lang):
     diagrams = {}
     counter = 1
     for schema in db_metadata:
+        # We don't want to send the whole metadata to GPT-3
         tables = db_metadata[schema]['tables']
+        modified_tables = []
+        for table in tables:
+            modified_table = copy.deepcopy(table)
+            del modified_table['columns_details']
+            del modified_table['checks']
+            del modified_table['indexes']
+            modified_tables.append(modified_table)
+
         views = db_metadata[schema]['views']
         functions = db_metadata[schema]['functions']
-        gpt_responses[schema] = DescriptionGenerator.runner(tables, views, functions, lang)
+        gpt_responses[schema] = DescriptionGenerator.runner(modified_tables, views, functions, lang)
         diagrams[schema] = f"description_for_kroki{counter}_diagram.svg"
         counter += 1
     print(gpt_responses)

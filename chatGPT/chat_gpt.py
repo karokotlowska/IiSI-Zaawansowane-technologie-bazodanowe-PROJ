@@ -23,7 +23,7 @@ class ChatGPT:
     def ask_gpt(self, question: str, attempt: int = 0):
         try:
             openai.api_key = self.key
-            prompt = Prompt("gpt-3.5-turbo", 0.68, 2048, ChatGPT.CHAT, question)
+            prompt = Prompt("gpt-4", 0.68, 4096, ChatGPT.CHAT, question)
             return self._create_response(prompt)
         except RateLimitError:
             logging.warning(

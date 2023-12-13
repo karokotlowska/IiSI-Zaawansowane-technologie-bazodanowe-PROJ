@@ -5,6 +5,11 @@ from sqlalchemy.engine import create_engine, Engine
 from sqlalchemy import inspect, Table
 from sqlalchemy.dialects.postgresql.base import PGInspector
 import logging
+from sqlalchemy import text
+import re
+import json
+import subprocess
+
 from graphviz import Digraph
 
 import matplotlib.pyplot as plt
@@ -20,10 +25,12 @@ class Database:
 
     SCHEMAS_TO_IGNORE = ['information_schema', 'pg_catalog', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog']
 
-    def __init__(self):
+    def __init__(self, cmd):
         self.tables = []
         self.view_names = []
         self.db_url = ''
+        self.cmd = cmd
+
 
     def connect(self, db_url):
         self.db_url = db_url
@@ -34,6 +41,35 @@ class Database:
         self.metadata = metadata
         self.inspector = inspect(engine)
         self.tables = metadata.tables
+
+        print(self.cmd)
+
+        process = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd = r'C:\Program Files\PostgreSQL\14\bin')
+
+        stdout, stderr = process.communicate()
+
+        with open("./DUMP.txt", 'w') as file:
+            file.write(stdout)
+
+        print(self.extract_checks_from_dump(stdout))
+
+    def extract_checks_from_dump(self, dump_string):
+        table_pattern = re.compile(r'CREATE TABLE (\S+) \((.*?)\);', re.DOTALL)
+
+        constraint_pattern = re.compile(r'CONSTRAINT (\S+) CHECK \((.*?)\)')
+
+        table_matches = table_pattern.findall(dump_string)
+
+        tables_and_constraints = []
+        for table_match in table_matches:
+            table_name, table_content = table_match
+            constraints = constraint_pattern.findall(table_content)
+            tables_and_constraints.append({
+                'table_name': table_name,
+                'constraints': constraints,
+            })
+
+        return tables_and_constraints
 
     def get_database_metadata(self) -> dict:
 
@@ -187,6 +223,7 @@ class Database:
         unique_constraints = []
         primary_keys = []
         indexes = []
+        checks = []
 
         for c in table.constraints:
             if isinstance(c, ForeignKeyConstraint):
@@ -209,7 +246,7 @@ class Database:
             "primary_keys": primary_keys,
             "foreign_keys": foreign_keys,
             "indexes": indexes,
-            "checks": []
+            "checks": checks,
         }
 
         # #KROKI

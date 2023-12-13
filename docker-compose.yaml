@@ -2,10 +2,10 @@ version: '3.9'
 
 services:
   postgres:
-    container_name: isi_proj-postgres
+    container_name: isi_proj-postgres2
     image: postgres
     environment:
-      POSTGRES_USER: root
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       PGDATA: /data/postgres
     volumes:

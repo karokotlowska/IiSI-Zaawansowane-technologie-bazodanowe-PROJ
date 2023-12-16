@@ -1,5 +1,7 @@
 import json
 
+from config import output_dir
+
 
 class MarkdownGenerator:
 
@@ -195,8 +197,11 @@ class MarkdownGenerator:
     @classmethod
     def _generate_column_description(cls, column_metadata: dict) -> str:
         markdown = ""
-        markdown += f"| {column_metadata['name']} | {column_metadata['type']} | {column_metadata['primary_key']} | {column_metadata['foreign_key']} | {column_metadata['unique']} | {not column_metadata['nullable']} |{column_metadata['default']} | {json.dumps(column_metadata['identity'])} | {column_metadata['autoincrement']} | {column_metadata['comment']} |\n"
-        return markdown.replace("True", "&check;").replace("False", "&cross;")
+        markdown += f"| {column_metadata['name']} | {column_metadata['type']} | {column_metadata['primary_key']} | {len(column_metadata['foreign_key']) > 0} | {column_metadata['unique']} | {not column_metadata['nullable']} |{column_metadata['default']} | {json.dumps(column_metadata['identity'])} | {column_metadata['autoincrement']} | {column_metadata['comment']} |\n"
+        return (markdown.replace("True", "&check;")
+                .replace("False", "&cross;")
+                .replace("None", "-")
+                .replace("null", "-"))
 
     @classmethod
     def _generate_table_indexes_description_content_header(cls) -> str:
@@ -395,5 +400,5 @@ class MarkdownGenerator:
 
     @classmethod
     def _save_markdown(cls, markdown: str):
-        with open('description.md', 'w') as f:
+        with open(output_dir('description.md'), 'w') as f:
             f.write(markdown)

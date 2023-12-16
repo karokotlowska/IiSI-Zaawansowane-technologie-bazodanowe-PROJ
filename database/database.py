@@ -14,6 +14,8 @@ from graphviz import Digraph
 
 import matplotlib.pyplot as plt
 
+from config import tmp_dir, output_dir
+
 
 class Database:
     metadata: MetaData
@@ -83,6 +85,11 @@ class Database:
             functions = self.get_functions(schema)
             triggers = self.get_triggers(schema)
             db[schema] = {"tables": tables, "views": views, "functions": functions, "triggers": triggers}
+
+        if 'public' in db and len(db['public']['tables']) == 0 and len(db['public']['views']) == 0 and len(
+                db['public']['functions']) == 0 and len(db['public']['triggers']) == 0:
+            del db['public']
+
         return db
 
     def get_views(self, schema: str) -> list:
@@ -155,7 +162,7 @@ class Database:
                              label=f"FK: {table}.{foreign_key['constrained_columns'][0]} -> {ref_table}.{ref_column}",
                              color='green', dir='none')
 
-            output_file = f"{schema}_graph"
+            output_file = output_dir(f"{schema}_graph")
             dot.render(output_file, format='png', cleanup=True)
 
     def generate_data_for_digraph(self):
@@ -178,7 +185,7 @@ class Database:
             # Set y-axis ticks to integers only
             plt.yticks(range(min(num_columns), max(num_columns) + 1))
 
-            plt.savefig(f"{schema}_plot.png")
+            plt.savefig(output_dir(f"{schema}_plot.png"))
         # schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]
 
         # for i, schema in enumerate(schemas, start=1):
@@ -214,7 +221,7 @@ class Database:
         schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]
 
         for i, schema in enumerate(schemas, start=1):
-            file_name = f'description_for_kroki{i}.txt'
+            file_name = tmp_dir(f'description_for_kroki{i}.txt')
             self.create_description_for_kroki(schema, file_name)
 
     def describe_table(self, table) -> dict:

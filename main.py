@@ -1,11 +1,10 @@
 import copy
-import json
 
 from dotenv import load_dotenv
 
-import pprint
-from Kroki.kroki import get_diagram_svg, convert_svg_to_png, save_svg_diagram, process_kroki_files
-from Database import Database
+from kroki.kroki import process_kroki_files
+from database import Database
+from config import delete_tmp_dir, delete_output_dir
 from markdown import MarkdownGenerator
 from menu import Menu
 from description import DescriptionGenerator, Query
@@ -73,5 +72,11 @@ if __name__ == '__main__':
     logging.root.setLevel(logging.NOTSET)
     logging.basicConfig(level=logging.NOTSET)
 
-    menu = Menu()
-    menu.run(run)
+    try:
+        delete_output_dir()
+        menu = Menu()
+        menu.run(run)
+    except Exception as e:
+        raise e
+    finally:
+        delete_tmp_dir()

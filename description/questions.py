@@ -35,14 +35,13 @@ class Query:
                 raise Exception("Invalid language")
 
     DATABASE_EN = Question(
-        "Generate a description for the database with the given structure in JSON format name_schema => content: %s Please make the description contain min 400 words. Please return description under the 'database' key in  JSON format: { \"database\": \"description\"}. Descriptions should be in %s language. If you want to use new line character please use \\n instead of new line.")
+        "Generate a description for the database with the given structure in JSON format name_schema => content: %s Please make the description contain min 400 words. Please return description under the 'database' key in  JSON format: { \"database\": \"database_description\"}. Descriptions should be in %s language. If you want to use new line character please use \\n instead of new line and \" instead of quotes.")
 
     TABLES_EN = Question(
-        "Generate a description for tables in the relational database with this JSON structure: %s. The description should attempt to guess the semantics and relationships between the tables. The table description should contain a minimum of 3 sentences, a maximum of 5. Return the results in JSON format: { \"table_name_1\": \"description\", \"table_name_2\": \"description\"} and return nothing else. Descriptions should be in %s language. Use the \\n character instead of new lines.")
+        "Generate a description for all tables in the relational database with this JSON structure: %s. The description should attempt to guess the semantics and relationships between the tables. The table description should contain a minimum of 3 sentences, a maximum of 5. Return the results in JSON format: { \"table_name_1\": \"table_name_1_description\", \"table_name_2\": \"table_name_2_description\"} and return nothing else. Descriptions should be in %s language. Use the \\n character instead of new lines and \" instead of quotes.")
 
     VIEWS_EN = Question(
-        "Generate a description for views in the relational database with this JSON structure: %s. The view description should contain a minimum of 3 sentences, a maximum of 5. Return the results in JSON format: { \"view_name_1\": \"description\", \"view_name_2\": \"description\"} and return nothing else. Descriptions should be in %s language. Use the \\n character instead of new lines.")
+        "Generate a description for all views in the relational database with this JSON structure: %s. The view description should contain a minimum of 3 sentences, a maximum of 5. Return the results in JSON format: { \"view_name_1\": \"view_name_1_description\", \"view_name_2\": \"view_name_2_description\"} and return nothing else. Descriptions should be in %s language. Use the \\n character instead of new lines and \" instead of quotes.")
 
     FUNCTIONS_EN = Question(
-        "Generate a description for the functions in the relational database with this JSON structure: %s. The function description should contain a minimum of 3 sentences, a maximum of 5. Return the results in JSON format: { \"function_name_1\": \"description\", \"function_name_2\": \"description\", ...} and return nothing else. Descriptions should be in %s language. Use the \\n character instead of new lines."
-    )
+        "Generate a description for all functions in the relational database with this JSON structure: %s. The function description should contain a minimum of 3 sentences, a maximum of 5. Return the results in JSON format: { \"function_name_1\": \"function_name_1_description\", \"function_name_2\": \"function_name_2_description\", ...} and return nothing else. Descriptions should be in %s language. Use the \\n character instead of new lines and \" instead of quotes.")

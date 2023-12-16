@@ -216,28 +216,38 @@ class MarkdownGenerator:
     @classmethod
     def _generate_index_description(cls, index_metadata: dict) -> str:
         markdown = ""
-        markdown += f"| {index_metadata['name']} | {', '.join(index_metadata['columns'])} |\n"
+        markdown += f"| {index_metadata['table_name']} | {', '.join(index_metadata['constraints'])} |\n"
         return markdown
 
     @classmethod
     def _generate_table_checks_description_content_header(cls, table_metadata: dict) -> str:
+        print("-----------------\n\n\n")
+        print(table_metadata)
+        print("n\\nn----------")
         markdown = "Checks: \n\n"
         markdown += "| Check name | Expression |\n"
-        markdown += "| --- | --- |\n"
+        markdown += "|------------|------------|\n"
+
+        for check in table_metadata.get('checks', []):
+            check_name = check.get('name', 'N/A')
+            sqltext = check.get('sqltext', 'N/A')
+        
+            markdown += f"| {check_name} | {sqltext} |++\n"
+    
         return markdown
 
     @classmethod
     def _generate_table_checks_description_content_content(cls, table_metadata: dict) -> str:
         markdown = ""
-        for check_metadata in table_metadata['checks']:
-            markdown += cls._generate_check_description(check_metadata)
+        # for check_metadata in table_metadata['checks']:
+        markdown += cls._generate_check_description(table_metadata['checks'])
         markdown += "\n"
         return markdown
 
     @classmethod
     def _generate_check_description(cls, check_metadata: dict) -> str:
         markdown = ""
-        markdown += f"| {check_metadata['name']} | {check_metadata['sqltext']} |\n"
+        # markdown += f"| {check_metadata['name']} | {check_metadata['sqltext']} |\n"
         return markdown
 
     @classmethod

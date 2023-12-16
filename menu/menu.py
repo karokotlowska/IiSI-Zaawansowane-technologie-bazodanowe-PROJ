@@ -27,7 +27,7 @@ class Menu:
         else:
             print("Invalid arguments: use --uri or --db, --user, --password, --host, --port")
             exit(1)
-        # db_url = f"postgresql://postgres:admin@localhost:5432/shopping_db"
+        db_url = f"postgresql://postgres:admin@localhost:5432/shopping_db"
 
         dump_database_command = [
             'pg_dump',

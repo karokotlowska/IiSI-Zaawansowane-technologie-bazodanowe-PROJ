@@ -41,40 +41,41 @@ class Database:
         self.metadata = metadata
         self.inspector = inspect(engine)
         self.tables = metadata.tables
+        self.dump_string = self.make_dump_database()
 
-        print(self.cmd)
 
-        process = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd = r'C:\Program Files\PostgreSQL\14\bin')
+    def make_dump_database(self):
+        # user_cwd_path = input("Enter the path to the PostgreSQL bin directory: ")
+        # user_cwd_path = r'C:\Program Files\PostgreSQL\14\bin'
+        # process = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd =user_cwd_path)
 
-        stdout, stderr = process.communicate()
+        # stdout, stderr = process.communicate()
+        # return stdout
+        pass
 
-        with open("./DUMP.txt", 'w') as file:
-            file.write(stdout)
 
-        print(self.extract_checks_from_dump(stdout))
+    def extract_column_checks(self, table_name_provided):
+        inline_check_pattern = re.compile(r'CREATE TABLE (\S+) \((.*?)(\w+)\s+(.*?)\s+CHECK \((.*?)\)\s*(?:,|\))', re.DOTALL)
 
-    def extract_checks_from_dump(self, dump_string):
-        table_pattern = re.compile(r'CREATE TABLE (\S+) \((.*?)\);', re.DOTALL)
+        inline_checks = inline_check_pattern.findall(self.dump_string)
+        checks = []
+        for table, _, column_name, column_type, check_expr in inline_checks:
+            table_name = table.split('.')[1]
+            if(table_name == table_name_provided):
+                checks.append({
+                    'table': table,
+                    'column': column_name,
+                    'constraint': check_expr.strip()
+                })
 
-        constraint_pattern = re.compile(r'CONSTRAINT (\S+) CHECK \((.*?)\)')
-
-        table_matches = table_pattern.findall(dump_string)
-
-        tables_and_constraints = []
-        for table_match in table_matches:
-            table_name, table_content = table_match
-            constraints = constraint_pattern.findall(table_content)
-            tables_and_constraints.append({
-                'table_name': table_name,
-                'constraints': constraints,
-            })
-
-        return tables_and_constraints
+        return checks
 
     def get_database_metadata(self) -> dict:
 
         schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]
         db = {}
+        print("\n\n\n")
+        print(self.inspector.get_schema_names())
         for schema in schemas:
             self.metadata.reflect(bind=self.engine, schema=schema)
             tables = self.get_tables(schema)
@@ -238,7 +239,10 @@ class Database:
 
         columns, columns_details = self.get_columns(table, unique_constraints)
 
-        return {
+        # checks = self.extract_checks_from_dump( table_name_provided=table.name)
+
+        result = {
+            "checks": checks,
             "name": table.name,
             "comment": table.comment,
             "columns": columns,
@@ -246,8 +250,13 @@ class Database:
             "primary_keys": primary_keys,
             "foreign_keys": foreign_keys,
             "indexes": indexes,
-            "checks": checks,
         }
+        print("------------\n\n\n")
+        print(result)
+        print("\n\n")
+        print(table.schema)
+
+        return result
 
         # #KROKI
 

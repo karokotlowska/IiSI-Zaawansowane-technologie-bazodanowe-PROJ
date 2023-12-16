@@ -17,7 +17,7 @@ def run(db_url: str, lang: Query.Lang, dump_command):
     db = Database(dump_command)
     db.connect(db_url)
     db.generate_data_for_kroki()
-    db.generate_data_for_digraph()
+    # db.generate_data_for_digraph()
 
     db.visualize()
 

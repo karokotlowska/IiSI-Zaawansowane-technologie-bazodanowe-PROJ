@@ -237,7 +237,7 @@ class MarkdownGenerator:
             check_name = check.get('name', 'N/A')
             sqltext = check.get('sqltext', 'N/A')
         
-            markdown += f"| {check_name} | {sqltext} |++\n"
+            markdown += f"| {check_name} | {sqltext} |\n"
     
         return markdown
 

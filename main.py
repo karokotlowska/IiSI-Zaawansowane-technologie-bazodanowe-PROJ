@@ -2,8 +2,8 @@ import copy
 
 from dotenv import load_dotenv
 
-from kroki.kroki import process_kroki_files
-from database import Database
+from Kroki.kroki import process_kroki_files
+from Database import Database
 from config import delete_tmp_dir, delete_output_dir
 from markdown import MarkdownGenerator
 from menu import Menu

@@ -27,7 +27,6 @@ def save_svg_diagram(path: str, diagram: str):
 
 
 def convert_svg_to_png(svg_file_name, png_file_name):
-    print(svg_file_name, png_file_name)
     cairosvg.svg2png(url=svg_file_name, write_to=str(png_file_name), dpi=300)
 
 

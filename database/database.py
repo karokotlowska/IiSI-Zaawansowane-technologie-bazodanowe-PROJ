@@ -27,12 +27,10 @@ class Database:
 
     SCHEMAS_TO_IGNORE = ['information_schema', 'pg_catalog', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog']
 
-    def __init__(self, cmd):
+    def __init__(self):
         self.tables = []
         self.view_names = []
         self.db_url = ''
-        self.cmd = cmd
-
 
     def connect(self, db_url):
         self.db_url = db_url
@@ -43,41 +41,11 @@ class Database:
         self.metadata = metadata
         self.inspector = inspect(engine)
         self.tables = metadata.tables
-        self.dump_string = self.make_dump_database()
-
-
-    def make_dump_database(self):
-        # user_cwd_path = input("Enter the path to the PostgreSQL bin directory: ")
-        # user_cwd_path = r'C:\Program Files\PostgreSQL\14\bin'
-        # process = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd =user_cwd_path)
-
-        # stdout, stderr = process.communicate()
-        # return stdout
-        pass
-
-
-    def extract_column_checks(self, table_name_provided):
-        inline_check_pattern = re.compile(r'CREATE TABLE (\S+) \((.*?)(\w+)\s+(.*?)\s+CHECK \((.*?)\)\s*(?:,|\))', re.DOTALL)
-
-        inline_checks = inline_check_pattern.findall(self.dump_string)
-        checks = []
-        for table, _, column_name, column_type, check_expr in inline_checks:
-            table_name = table.split('.')[1]
-            if(table_name == table_name_provided):
-                checks.append({
-                    'table': table,
-                    'column': column_name,
-                    'constraint': check_expr.strip()
-                })
-
-        return checks
 
     def get_database_metadata(self) -> dict:
 
         schemas = [schema for schema in self.inspector.get_schema_names() if schema not in self.SCHEMAS_TO_IGNORE]
         db = {}
-        print("\n\n\n")
-        print(self.inspector.get_schema_names())
         for schema in schemas:
             self.metadata.reflect(bind=self.engine, schema=schema)
             tables = self.get_tables(schema)
@@ -258,11 +226,6 @@ class Database:
             "foreign_keys": foreign_keys,
             "indexes": indexes,
         }
-        print("------------\n\n\n")
-        print(result)
-        print("\n\n")
-        print(table.schema)
-
         return result
 
         # #KROKI
@@ -345,21 +308,9 @@ class Database:
         relationship_description = "\n\n# Relationships"
         encountered_relationships = set()
 
-        # for table in self.get_tables_in_schema(schema):
-
-        #     constraints = self.inspector.get_foreign_keys(table.name, schema=schema)
-        #     print("\nForeign Keys:")
-        #     for constraint in constraints:
-        #         print(constraint)
-        #         print(f"Reffered table: {constraint['reffered_table']}, reffered_columns: {constraint['referred_columns']}, ")
-        #         #     f"Columns: {constraint['constrained_columns']}, "
-        #         #     f"Referred Table: {constraint['referred_table']}, "
-        #         #     f"Referred Columns: {constraint['referred_columns']}")
-
         all_foreign_keys = self.get_all_foreign_keys(schema=schema)
         all_primery_keys = self.get_all_primary_keys(schema=schema)
         for table in self.get_tables_in_schema(schema):
-            print(table.name)
             symbol = ""
 
             has_primary_key = any(column.primary_key for column in table.columns)
@@ -398,14 +349,12 @@ class Database:
             referred_table = constraint.table.name
             symbol = "*--1"
             combined_relationship = (referred_table, symbol, table_name)
-            print(combined_relationship)
             if self.has_second_table_primary_key_of_first_table_primary_key(table_name,
                                                                             constraint.table.name,
                                                                             schema) and referred_table != table_name and combined_relationship not in encountered_relationships and combined_relationship[
                                                                                                                                                                                     ::-1] not in encountered_relationships:
                 relationship_description += f"\n{referred_table} {symbol} {table_name}"
                 encountered_relationships.add(combined_relationship)
-                print(f"\n{referred_table} {symbol} {table_name}")
         return relationship_description
 
     def check_relation_one_to_one(self, table_name, primary_keys, foreign_keys, unique_constraints,
@@ -426,11 +375,9 @@ class Database:
 
     def check_relation_one_to_many(self, table_name, primary_keys, foreign_keys, encountered_relationships, schema):
         symbol = ""
-        print("----")
         relationship_description = ""
         for constraint in foreign_keys:
             if (constraint['referred_table'] == table_name):
-                print(constraint['table_name'], table_name)
                 symbol = "*--1"
                 combined_relationship = (constraint['table_name'], symbol, table_name)
                 if combined_relationship not in encountered_relationships and combined_relationship[
@@ -446,12 +393,6 @@ class Database:
             referred_columns = foreign_key['referred_columns']
             if primary_key in referred_columns:
                 return True
-
-        # constraints_in_second_table = inspector.get_unique_constraints(second_table, schema=schema)
-        # print(constraints_in_second_table)
-        # for constraint in constraints_in_second_table:
-        #     if primary_key in constraint['column_names']:
-        #         return True
 
         return False
 

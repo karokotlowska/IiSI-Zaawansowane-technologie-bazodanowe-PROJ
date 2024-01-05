@@ -2,7 +2,7 @@ import logging
 import threading
 
 import openai
-from openai.error import RateLimitError
+from openai.error import RateLimitError, InvalidRequestError, OpenAIError
 from dotenv import load_dotenv
 from urllib3.exceptions import ReadTimeoutError
 
@@ -16,24 +16,32 @@ load_dotenv()
 class ChatGPT:
     COMPLETION = 'COMPLETION'
     CHAT = 'CHAT'
+    KEY = os.getenv("OPENAI_API_KEY")
+    GTP_VERSION = 'gpt-3.5-turbo'
+    MAX_TOKENS = 2048
 
-    def __init__(self):
-        self.key = os.getenv("OPENAI_API_KEY")
+    class GPTException(Exception):
+        def __init__(self, message):
+            self.message = message
 
-    def ask_gpt(self, question: str, attempt: int = 0):
+    @classmethod
+    def ask_gpt(cls, question: str, attempt: int = 0):
         try:
-            openai.api_key = self.key
-            prompt = Prompt("gpt-4", 0.68, 4096, ChatGPT.CHAT, question)
-            return self._create_response(prompt)
-        except RateLimitError:
+            if cls.KEY is None:
+                raise ChatGPT.GPTException("OpenAI API key not found")
+
+            openai.api_key = cls.KEY
+            prompt = Prompt(cls.GTP_VERSION, 0.68, cls.MAX_TOKENS, ChatGPT.CHAT, question)
+            return cls._create_response(prompt)
+        except RateLimitError as e:
             logging.warning(
                 f"Thread [{threading.current_thread().name}] Rate limit exceeded, waiting 20 seconds for question {question} and trying again in 3 attempts left {3 - attempt}")
             time.sleep(20)
             if attempt > 3:
                 logging.error(
                     f"Thread [{threading.current_thread().name}] Rate limit exceeded for question {question}, tried 3 times, giving up")
-                raise Exception("Rate limit exceeded")
-            return self.ask_gpt(question, attempt + 1)
+                raise ChatGPT.GPTException(e.user_message)
+            return cls.ask_gpt(question, attempt + 1)
         except ReadTimeoutError:
             logging.warning(
                 f"Thread [{threading.current_thread().name}] Read timeout exceeded, waiting 20 seconds for question {question} and trying again in 3 attempts left {3 - attempt}")
@@ -41,10 +49,19 @@ class ChatGPT:
             if attempt > 3:
                 logging.error(
                     f"Thread [{threading.current_thread().name}] Read timeout exceeded for question {question}, tried 3 times, giving up")
-                raise Exception("Read timeout exceeded")
-            return self.ask_gpt(question, attempt + 1)
+                raise ChatGPT.GPTException("Read timeout exceeded")
+            return cls.ask_gpt(question, attempt + 1)
+        except InvalidRequestError as e:
+            logging.error(
+                f"Thread [{threading.current_thread().name}] Invalid request for question {question}")
+            raise ChatGPT.GPTException(e.user_message)
+        except OpenAIError as e:
+            logging.error(
+                f"Thread [{threading.current_thread().name}] Unexpected error for question {question}")
+            raise ChatGPT.GPTException(e.user_message)
 
-    def _create_response(self, prompt: Prompt):
+    @classmethod
+    def _create_response(cls, prompt: Prompt):
         if prompt.type == ChatGPT.COMPLETION:
             return openai.Completion.create(
                 engine=prompt.engine,

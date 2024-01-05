@@ -32,13 +32,8 @@ class DescriptionGenerator:
 
     @classmethod
     def runner(cls, tables: list, views: list, functions: list, lang: Query.Lang) -> dict:
-
-        # event = threading.Event()
-        # loading_thread = threading.Thread(target=cls._loading_animation, args=(event,))
-        # loading_thread.start()
-
         try:
-            #
+
             tables_thread = threading.Thread(target=cls._generate_tables_description, args=(tables, lang))
             views_thread = threading.Thread(target=cls._generate_views_description, args=(views, lang))
             functions_thread = threading.Thread(target=cls._generate_functions_description, args=(functions, lang))
@@ -55,12 +50,8 @@ class DescriptionGenerator:
                 logging.error(f"Aborting system...Error while generating description {cls.errors}")
                 raise Exception("Error while generating description")
 
-            # event.set()
-            # loading_thread.join()
             return {"tables": cls.tables_response, "views": cls.views_response, "functions": cls.functions_response}
         except Exception as e:
-            # event.set()
-            # loading_thread.join()
             raise e
 
     @classmethod
@@ -154,3 +145,12 @@ class DescriptionGenerator:
     def _save_to_file(cls, content: str):
         with open('database_description_gpt.txt', 'w') as file:
             file.write(content)
+
+    @classmethod
+    def _ask_gpt(cls, question: str):
+        try:
+            return cls.gptClient.ask_gpt(question)
+        except Exception as e:
+            logging.error(
+                f"Thread [{threading.current_thread().name}] Unexpected error for question {question}")
+            raise Exception(e)

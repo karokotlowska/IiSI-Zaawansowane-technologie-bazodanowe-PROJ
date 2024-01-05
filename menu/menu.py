@@ -1,5 +1,6 @@
 import argparse
 
+from chatGPT import ChatGPT
 from description import Query
 
 
@@ -12,7 +13,10 @@ class Menu:
         self.parser.add_argument('--password', help='Database password')
         self.parser.add_argument('-p', '--port', help='Database port')
         self.parser.add_argument('-c', '--host', help='Database host')
-        self.parser.add_argument('-l', '--lang', help='Output language for the chatbot', default='pl')
+        self.parser.add_argument('-l', '--lang', help='Output language for the chatbot(en,pl)', default='en')
+        self.parser.add_argument('--gpt-version', help='GPT version', default='gpt-3.5-turbo')
+        self.parser.add_argument('--tokens', help='Max tokens', default=2048)
+        self.parser.add_argument("--api-key", help="OpenAI API key")
 
     def run(self, runnable):
         args = self.parser.parse_args()
@@ -27,13 +31,12 @@ class Menu:
         else:
             print("Invalid arguments: use --uri or --db, --user, --password, --host, --port")
             exit(1)
-        db_url = f"postgresql://postgres:admin@localhost:5432/shopping_db"
 
-        dump_database_command = [
-            'pg_dump',
-            '-U', args.user,
-            '-h', args.host,
-            '-p', args.port,
-            '-d', args.db,
-        ]
-        runnable(db_url, lang, dump_database_command)
+        ChatGPT.GTP_VERSION = args.gpt_version
+        ChatGPT.MAX_TOKENS = int(args.tokens)
+
+        if args.api_key:
+            ChatGPT.KEY = args.api_key
+            print("Using custom API key")
+
+        runnable(db_url, lang)

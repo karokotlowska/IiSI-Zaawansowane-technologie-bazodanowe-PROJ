@@ -3,21 +3,25 @@ import json
 from config import output_dir
 from description import Query
 
+
 class MarkdownGenerator:
 
     @classmethod
-    def generate(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str, diagrams: dict, language: Query.Lang):
+    def generate(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str, diagrams: dict,
+                 language: Query.Lang):
         markdown = cls._generate_markdown(db_metadata, gpt_descriptions, db_description, diagrams, language)
         cls._save_markdown(markdown)
 
     @classmethod
-    def _generate_markdown(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str, diagrams: dict, language: Query.Lang) -> str:
+    def _generate_markdown(cls, db_metadata: dict, gpt_descriptions: dict, db_description: str, diagrams: dict,
+                           language: Query.Lang) -> str:
         markdown = ""
-        markdown += cls._generate_database_description(db_metadata, db_description, gpt_descriptions, diagrams, language)
-        markdown += cls._generate_tables_description(db_metadata, gpt_descriptions, language)
-        markdown += cls._generate_views_description(db_metadata, gpt_descriptions, language)
-        markdown += cls._generate_functions_description(db_metadata, gpt_descriptions, language)
-        markdown += cls._generate_triggers_description(db_metadata, gpt_descriptions, language)
+        markdown += cls._generate_database_description(db_metadata, db_description, gpt_descriptions, diagrams,
+                                                       language)
+        markdown += cls._generate_tables_description(db_metadata, language)
+        markdown += cls._generate_views_description(db_metadata, language)
+        markdown += cls._generate_functions_description(db_metadata, language)
+        markdown += cls._generate_triggers_description(db_metadata, language)
         return markdown
 
     @classmethod
@@ -40,7 +44,8 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_database_description_content(cls, db_metadata: dict, gpt_descriptions, diagrams: dict, language: Query.Lang) -> str:
+    def _generate_database_description_content(cls, db_metadata: dict, gpt_descriptions, diagrams: dict,
+                                               language: Query.Lang) -> str:
         markdown = ""
         for schema in db_metadata:
             schema_descriptions = gpt_descriptions[schema]
@@ -49,7 +54,8 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_schema_description(cls, schema: str, schema_metadata: dict, schema_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_schema_description(cls, schema: str, schema_metadata: dict, schema_descriptions: dict,
+                                     language: Query.Lang) -> str:
         markdown = ""
         markdown += cls._generate_schema_name(schema)
         markdown += cls._generate_schema_tables(schema_metadata, schema_descriptions['tables'], language)
@@ -123,7 +129,8 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_schema_functions(cls, schema_metadata: dict, functions_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_schema_functions(cls, schema_metadata: dict, functions_descriptions: dict,
+                                   language: Query.Lang) -> str:
         markdown = ""
         markdown += cls._generate_schema_functions_header(language)
         markdown += cls._generate_schema_functions_content(schema_metadata['functions'], functions_descriptions)
@@ -135,7 +142,7 @@ class MarkdownGenerator:
         if language == Query.Lang.EN:
             markdown = "| Function name | Description |\n"
         elif language == Query.Lang.PL:
-            markdown = "| Nazwa funkcji | Opis |\n"        
+            markdown = "| Nazwa funkcji | Opis |\n"
         markdown += "| --- | --- |\n"
         return markdown
 
@@ -154,23 +161,23 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_tables_description(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_tables_description(cls, db_metadata: dict, language: Query.Lang) -> str:
         if language == Query.Lang.EN:
             markdown = "# Tables description\n\n"
         elif language == Query.Lang.PL:
             markdown = "# Opis tabel\n\n"
-        markdown += cls._generate_tables_description_content(db_metadata, gpt_descriptions, language)
-        return markdown
-    
-    @classmethod
-    def _generate_tables_description_content(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
-        markdown = ""
-        for schema in db_metadata:
-            markdown += cls._generate_schema_tables_description(schema, db_metadata[schema], {}, language)
+        markdown += cls._generate_tables_description_content(db_metadata, language)
         return markdown
 
     @classmethod
-    def _generate_schema_tables_description(cls, schema: str, schema_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_tables_description_content(cls, db_metadata: dict, language: Query.Lang) -> str:
+        markdown = ""
+        for schema in db_metadata:
+            markdown += cls._generate_schema_tables_description(schema, db_metadata[schema], language)
+        return markdown
+
+    @classmethod
+    def _generate_schema_tables_description(cls, schema: str, schema_metadata: dict, language: Query.Lang) -> str:
         markdown = ""
         markdown += cls._generate_schema_name(schema)
         markdown += cls._generate_schema_tables_description_content(schema_metadata['tables'], language)
@@ -184,7 +191,7 @@ class MarkdownGenerator:
                 markdown += f"### Table: *{table_metadata['name']}*\n\n"
             elif language == Query.Lang.PL:
                 markdown += f"### Tabela: *{table_metadata['name']}*\n\n"
-            
+
             markdown += cls._generate_table_description_content(table_metadata, language)
         return markdown
 
@@ -215,7 +222,7 @@ class MarkdownGenerator:
         elif language == Query.Lang.PL:
             markdown = "Struktura: \n\n"
             header = "| Nazwa kolumny | Typ | Klucz główny | Klucz obcy | Unikalny | Nie null | Domyślna wartość | Tożsamość | Autoinkrementacja | Komentarz |\n"
-        
+
         markdown += header
         markdown += "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | \n"
         return markdown
@@ -264,7 +271,7 @@ class MarkdownGenerator:
         elif language == Query.Lang.PL:
             markdown = "Sprawdzenia: \n\n"
             header = "| Nazwa sprawdzenia | Wyrażenie |\n"
-        
+
         markdown += header
         markdown += "|------------|------------|\n"
         return markdown
@@ -285,28 +292,29 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_views_description(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_views_description(cls, db_metadata: dict, language: Query.Lang) -> str:
         if language == Query.Lang.EN:
             markdown = "# Views description\n\n"
         elif language == Query.Lang.PL:
             markdown = "# Opis widoków\n\n"
-        
-        markdown += cls._generate_views_description_content(db_metadata, gpt_descriptions, language)
+
+        markdown += cls._generate_views_description_content(db_metadata, language)
         return markdown
 
     @classmethod
-    def _generate_views_description_content(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_views_description_content(cls, db_metadata: dict, language: Query.Lang) -> str:
         markdown = ""
         for schema in db_metadata:
             markdown += cls._generate_schema_views_description(schema, db_metadata[schema], {}, language)
         return markdown
 
     @classmethod
-    def _generate_schema_views_description(cls, schema: str, schema_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_schema_views_description(cls, schema: str, schema_metadata: dict, gpt_descriptions: dict,
+                                           language: Query.Lang) -> str:
         markdown = ""
         markdown += cls._generate_schema_name(schema)
         content = cls._generate_schema_views_description_content(schema_metadata['views'], gpt_descriptions, language)
-        
+
         if content.strip() == "":
             if language == Query.Lang.EN:
                 markdown += "*No views in this schema*\n\n"
@@ -318,21 +326,22 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_schema_views_description_content(cls, views_metadata: list, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_schema_views_description_content(cls, views_metadata: list, gpt_descriptions: dict,
+                                                   language: Query.Lang) -> str:
         markdown = ""
         for view_metadata in views_metadata:
             if language == Query.Lang.EN:
                 markdown += f"### View: *{view_metadata['name']}*\n\n"
             elif language == Query.Lang.PL:
                 markdown += f"### Widok: *{view_metadata['name']}*\n\n"
-            markdown += cls._generate_view_description_content(view_metadata, gpt_descriptions, language)
+            markdown += cls._generate_view_description_content(view_metadata, language)
         return markdown
 
     @classmethod
-    def _generate_view_description_content(cls, view_metadata: dict, gpt_descriptions: dict) -> str:
+    def _generate_view_description_content(cls, view_metadata: dict, language: Query.Lang) -> str:
         markdown = ""
-        markdown += cls._generate_view_definition_content(view_metadata)
-        markdown += cls._generate_view_columns_content_header()
+        markdown += cls._generate_view_definition_content(view_metadata, language)
+        markdown += cls._generate_view_columns_content_header(language)
         markdown += cls._generate_view_columns_content_content(view_metadata)
         return markdown
 
@@ -352,13 +361,13 @@ class MarkdownGenerator:
         elif language == Query.Lang.PL:
             markdown = "Struktura: \n\n"
             header = "| Nazwa kolumny | Typ |\n"
-        
+
         markdown += header
         markdown += "| --- | --- |\n"
         return markdown
 
     @classmethod
-    def _generate_view_columns_content_content(cls, view_metadata: dict, language: Query.Lang) -> str:
+    def _generate_view_columns_content_content(cls, view_metadata: dict) -> str:
         markdown = ""
         for column_metadata in view_metadata['columns']:
             markdown += cls._generate_view_column_description(column_metadata)
@@ -371,17 +380,17 @@ class MarkdownGenerator:
         return markdown
 
     @classmethod
-    def _generate_functions_description(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_functions_description(cls, db_metadata: dict, language: Query.Lang) -> str:
         if language == Query.Lang.EN:
             markdown = "# Functions description\n\n"
         elif language == Query.Lang.PL:
             markdown = "# Opis funkcji\n\n"
-        
-        markdown += cls._generate_functions_description_content(db_metadata, gpt_descriptions, language)
+
+        markdown += cls._generate_functions_description_content(db_metadata, language)
         return markdown
 
     @classmethod
-    def _generate_functions_description_content(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_functions_description_content(cls, db_metadata: dict, language: Query.Lang) -> str:
         markdown = ""
         for schema in db_metadata:
             markdown += cls._generate_schema_functions_description(schema, db_metadata[schema], language)
@@ -414,22 +423,22 @@ class MarkdownGenerator:
             markdown = f"### Function: *{function_metadata['name']}*\n"
         elif language == Query.Lang.PL:
             markdown = f"### Funkcja: *{function_metadata['name']}*\n"
-        
+
         markdown += f"```sql\n{function_metadata['definition']}\n``` \n\n"
         return markdown
 
     @classmethod
-    def _generate_triggers_description(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_triggers_description(cls, db_metadata: dict, language: Query.Lang) -> str:
         if language == Query.Lang.EN:
             markdown = "# Triggers description\n\n"
         elif language == Query.Lang.PL:
             markdown = "# Opis wyzwalaczy\n\n"
-        
-        markdown += cls._generate_triggers_description_content(db_metadata, gpt_descriptions, language)
+
+        markdown += cls._generate_triggers_description_content(db_metadata, language)
         return markdown
 
     @classmethod
-    def _generate_triggers_description_content(cls, db_metadata: dict, gpt_descriptions: dict, language: Query.Lang) -> str:
+    def _generate_triggers_description_content(cls, db_metadata: dict, language: Query.Lang) -> str:
         markdown = ""
         for schema in db_metadata:
             markdown += cls._generate_schema_triggers_description(schema, db_metadata[schema], language)

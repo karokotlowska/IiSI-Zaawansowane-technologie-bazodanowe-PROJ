@@ -1,4 +1,5 @@
 import argparse
+import textwrap
 
 from chatGPT import ChatGPT
 from description import Query
@@ -6,7 +7,15 @@ from description import Query
 
 class Menu:
     def __init__(self):
-        self.parser = argparse.ArgumentParser()
+        self.parser = argparse.ArgumentParser(
+            prog="DB Description Generator",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=textwrap.dedent('''\
+            READ THIS BEFORE USING:
+            Set only --uri argument  or declare all --db, --user, --password, --host, --port arguments.
+            If API key is not provided, the key from environment variable OPENAI_API_KEY will be used.
+            '''
+                                   ))
         self.parser.add_argument('--uri', help='URI for the database')
         self.parser.add_argument('--db', help='Database name')
         self.parser.add_argument('-u', '--user', help='Database user')

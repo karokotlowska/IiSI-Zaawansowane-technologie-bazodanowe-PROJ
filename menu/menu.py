@@ -23,8 +23,8 @@ class Menu:
         self.parser.add_argument('-p', '--port', help='Database port')
         self.parser.add_argument('-c', '--host', help='Database host')
         self.parser.add_argument('-l', '--lang', help='Output language for the chatbot(en,pl)', default='en')
-        self.parser.add_argument('--gpt-version', help='GPT version', default='gpt-3.5-turbo')
-        self.parser.add_argument('--tokens', help='Max tokens', default=2048)
+        self.parser.add_argument('--gpt-version', help='GPT version (default: gpt-3.5-turbo', default='gpt-3.5-turbo')
+        self.parser.add_argument('--tokens', help='GPT max tokens (default: 2048)', default=2048)
         self.parser.add_argument("--api-key", help="OpenAI API key")
 
     def run(self, runnable):

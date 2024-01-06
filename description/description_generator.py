@@ -48,7 +48,11 @@ class DescriptionGenerator:
 
             if len(cls.errors) > 0:
                 logging.error(f"Aborting system...Error while generating description {cls.errors}")
-                raise Exception("Error while generating description")
+                error = cls.errors[0]
+                if error.exception is not None:
+                    raise error.exception
+                else:
+                    raise Exception("Error while generating description")
 
             return {"tables": cls.tables_response, "views": cls.views_response, "functions": cls.functions_response}
         except Exception as e:
@@ -65,7 +69,7 @@ class DescriptionGenerator:
         query = Query.VIEWS_EN.builder(str(views), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating views description with GPT query: {query}")
-        response = cls.gptClient.ask_gpt(query)
+        response = cls._ask_gpt(query)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Finished generating views description. Successfully got "
             f"response: {response}")
@@ -87,7 +91,7 @@ class DescriptionGenerator:
         query = Query.TABLES_EN.builder(str(tables), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating tables description with GPT query: {query}")
-        response = cls.gptClient.ask_gpt(query)
+        response = cls._ask_gpt(query)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Finished generating tables description. Successfully got "
             f"response: {response}")
@@ -111,7 +115,7 @@ class DescriptionGenerator:
         query = Query.FUNCTIONS_EN.builder(str(functions), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating functions description with GPT query: {query}")
-        response = cls.gptClient.ask_gpt(query)
+        response = cls._ask_gpt(query)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Finished generating functions description. Successfully got "
             f"response: {response}")
@@ -130,7 +134,7 @@ class DescriptionGenerator:
         query = Query.DATABASE_EN.builder(str(db), lang)
         logging.info(
             f"Thread: [{threading.current_thread().name}] Starting generating database description with GPT query: {query}")
-        response = cls.gptClient.ask_gpt(query)
+        response = cls._ask_gpt(query)
         dict_response = json.loads(response)
         logging.info(f"Thread: [{threading.current_thread().name}] Finished generating database description. "
                      f"Successfully got response: {response}")
@@ -150,7 +154,8 @@ class DescriptionGenerator:
     def _ask_gpt(cls, question: str):
         try:
             return cls.gptClient.ask_gpt(question)
-        except Exception as e:
+        except ChatGPT.GPTException as e:
+            cls.errors.append(Error(e.message, "ask_gpt", threading.current_thread().name, e))
             logging.error(
                 f"Thread [{threading.current_thread().name}] Unexpected error for question {question}")
-            raise Exception(e)
+            raise e

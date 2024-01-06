@@ -54,4 +54,4 @@ class Context:
             diagrams[schema] = f"description_for_kroki{counter}_diagram.svg"
             counter += 1
         db_description = async_db_description.get()
-        MarkdownGenerator.generate(db_metadata, gpt_responses, db_description, diagrams)
+        MarkdownGenerator.generate(db_metadata, gpt_responses, db_description, diagrams, lang)

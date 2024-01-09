@@ -124,3 +124,82 @@ W przypadku błędów związanych z OpenAI użytkownik dostaje na wyjście stoso
 ![error_presentation](doc/error_presentation.gif)
 
 
+## Opis założeń
+
+Projekt miał na celu stworzenie rozwiązania umożliwiającego analizę i prezentację istniejących baz danych relacyjnch - postgreSQL. Projekt powinien uwzględniać bazy danych z wieloma schematami. Kluczowe założenia projektu obejmują:
+
+- Graficzna reprezentacja schematu bazy danych. Rozwiązanie jest w stanie generować wyraźne i czytelne diagramy, przedstawiające strukturę bazy danych, włącznie z tabelami, ich atrybutami, oraz związkami między nimi. Na wykresie powinny być osobno zaznaczone klucze główne oraz klucze obce. 
+
+- Generowanie tekstowego opisu tabel i atrybutów. System oferuje funkcjonalność tworzenia szczegółowych opisów składników bazy danych, w tym tabel i ich atrybutów. Opis ten opiera się na analizie semantycznej nazw, uwzględniając dodatkowe informacje takie jak komentarze, ograniczenia, funkcje, widoki, indeksy.
+
+- Tworzenie dokumentacji w formacie Markdown. Efektem końcowym działania programu jest plik Markdown, zawierający zarówno tekstowe opisy, jak i graficzne reprezentacje schematów baz danych. Projekt zakłada również dostarczenie instrukcji instalacji niezbędnych zależności, aby ułatwić użytkownikom korzystanie z rozwiązania.
+
+Celem projektu jest stworzenie narzędzia, które w sposób kompleksowy i zrozumiały dla użytkownika przedstawi strukturę oraz semantykę analizowanej bazy danych, wykorzystując przy tym przyjazne użytkownikom metody prezentacji danych.
+
+
+## Algorytmy
+
+### Wyciąganie danych z bazy danych
+
+Do tego zadania wykorzystaliśmy bibliotekę SQLalchemy, która udostępnia wiele metod pozwialających na wyciągnięcie danych z bazy. Program zakłada istnienie baz danych z wieloma schematami, natomiast konieczne było pominięcie niektórych schematów istniejących domyślnie w bazie:
+
+```
+SCHEMAS_TO_IGNORE = ['information_schema', 'pg_catalog', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'pg_catalog']
+```
+
+Do wyciągnięcia informacji o związkach między tabelami, iterowaliśmy po każdej tabeli i dla niej sprawdzaliśmy istnieje związku 1 do 1 oraz 1 do wielu. Przypadek związku wiele do wielu zilustrowaliśmy jako 1 do wielu oraz 1 do wielu.
+
+### Algorytm znajdowania relacji 1 do 1
+
+Algorytm znajdowania relacji jeden do jeden (one-to-one) w bazie danych opiera się na analizie kluczy obcych (foreign keys), kluczy głównych (primary keys) oraz ograniczeń unikalności (unique constraints). W celu znalezienie relacji należy przeszukać tabele względem połączeń klucz główny (tabela 1) oraz unikalny klucz obcy (tabela 2). Proces ten jest kluczowy w zrozumieniu, jak dane są powiązane między różnymi tabelami w bazie danych. Oto kroki algorytmu:
+
+1. Iteracja po kluczach wszystkich kluczach obcych w schemacie
+
+2. Sprawdzenie czy kolumna, na którą wskazuje klucz obcyma powiązanie z aktualną tabelą. oraz jest częścią jakiegokolwiek ograniczenia unikalności (UNIQUE) w tabeli, do której się odnosi. Jeśli tak - oznacza to relację 1 do 1.
+
+3. Jeśli tabela odniesienia (referred table) różni się od aktualnie iterowanej tabeli, algorytm identyfikuje to jako relację jeden do jednego. W takim przypadku, stosuje symbol "1--1" do reprezentowania tej relacji.
+
+### Algorytm znajdowania relacji 1 do wielu
+
+Algorytm do identyfikowania relacji jeden do wielu (one-to-many) w bazie danych analizuje powiązania między kluczami głównymi (primary keys) różnych tabel. Ten typ relacji jest powszechny w schematach baz danych, gdzie jedna tabela (nazywana tabelą rodzica) może być powiązana z wieloma rekordami w innej tabeli (nazywanej tabelą potomną). Oto kroki algorytmu:
+
+1. Iteracja po kluczach wszystkich kluczach obcych w schemacie, gdzie każdy jest rozpatrywany pod kątem jego potencjalnego powiązania z innymi tabelami.
+
+2. Sprawdzenie czy tabela zawierający dany klucz obcy ma powiązanie z aktualną tabelą. Jeśli tak - oznacza to relację 1 do wielu.
+
+3. Przed dodaniem nowego opisu relacji, algorytm sprawdza, czy ta konkretna relacja (lub jej odwrotność) nie została już wcześniej zidentyfikowana i dodana do opisu - symbol "*--1". To zapobiega powtarzaniu się tych samych informacji.
+
+
+*Przykład wygenerowanego diagramu*
+
+![description_preview](doc/diagram_kroki_example.png)
+
+### Wielowątkowość
+
+## Wady i Strategie Ich Przyszłego Rozwiązania
+
+### Wady zapropowanego rozwiązania
+
+1. **Wykresy dla dużych baz danych mogą być nieczytelne**: Przy dużych bazach danych, wygenerowane wykresy mogą być nieczytelne i zbyt złożone, co może utrudnić zrozumienie struktury bazy.
+
+2. **Niestabilność działania bota**: W niektórych przypadkach wykorzystywane api, używane do generowania opisów nie odpowiada zgodnie z przygotowanym przez nas wzorcem odpowiedzi, co prowadzi do niepoprawnego parsowania danych z odpowiedzi.
+
+3. **Czas trwania odpowiedzi zapytania**: Przy dużych bazach danych czas oczekiwania na odpowiedź od bota lub wygenerowanie wykresu może być długi. Mimo użytej wielowątkowości w zapytaniach do czata, czas oczekiwania na odpowiedzi może być uciążliwy dla użytkownika korzystającego z programu.
+
+4. **Brak interfejsu graficznego**: Aplikacja działa w linii poleceń, co może być barierą dla niektórych użytkowników, zwłaszcza tych mniej doświadczonych w pracy z takim środowiskiem.
+
+5. **Brak uwzględnienie związków między relacjami pochodzącymi z dwóch różnych schematów**: System nie zakłada poprawnego działania w sytuacji, kiedy istnieje związek między dwoma relacjami, będącymi w różnych schematach.
+
+### Strategie rozwiązania
+
+1. **Ulepszenie wizualizacji dla dużych baz danych**: Można rozważyć użycie bardziej zaawansowanych narzędzi do wizualizacji, które lepiej radzą sobie z dużymi strukturami, np. oferujące funkcje grupowania lub ukrywania niektórych elementów dla lepszej czytelności. Możliwe byłoby również wykorzystanie interaktywnych narzędzi ilustrujących wykresy - umożliwiające zaawansowane funkcje przybliżania oraz oddalania.
+
+2. **Stabilizacja działania bota**: Niestety nieprzewidywalność czata jest nie do rozwiązania na ten moment. Rozważyć można implementację zapytań do innego api, które może okazać się działać lepiej.
+
+3. **Optymalizacja czasu odpowiedzi**: Analiza i optymalizacja procesów przetwarzających duże zbiory danych może przynieść znaczną poprawę.
+
+4. **Tworzenie interfejsu graficznego**: Rozwój aplikacji o interfejs użytkownika bazujący na GUI znacznie ułatwiłby korzystanie z programu.
+
+5. **Uwzględnienie związków między relacjami pochodzącymi z dwóch różnych schematów**: System powinien zakładać istnienie związku między dwoma relacjami, będącymi w różnych schematach.
+
+

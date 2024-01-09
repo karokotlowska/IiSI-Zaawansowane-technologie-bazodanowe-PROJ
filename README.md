@@ -139,7 +139,7 @@ Celem projektu jest stworzenie narzędzia, które w sposób kompleksowy i zrozum
 
 ## Algorytmy
 
-### Wyciąganie danych z bazy danych
+### Wyciąganie metadanych z bazy danych
 
 Do tego zadania wykorzystaliśmy bibliotekę SQLalchemy, która udostępnia wiele metod pozwialających na wyciągnięcie danych z bazy. Program zakłada istnienie baz danych z wieloma schematami, natomiast konieczne było pominięcie niektórych schematów istniejących domyślnie w bazie:
 

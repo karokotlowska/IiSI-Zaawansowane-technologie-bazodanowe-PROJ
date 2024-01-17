@@ -238,6 +238,10 @@ Podczas wystąpienia tego błędu aplikacja podejmuje 3 próby ponownej komunika
 Aplikacja jest odporna na wystąpienie błędu w danym wątku - kończy działanie po synchronizacji wątków z odpowiednim
 błędem.
 
+## Wkład członków zespołu:
+
+**Karolina Kotłowska**: diagramy, raport, **Szymon Berdzik**: komunikacja z czatem, raport 
+
 ## Wady i Strategie Ich Przyszłego Rozwiązania
 
 ### Wady zapropowanego rozwiązania
